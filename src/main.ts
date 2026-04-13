@@ -72,29 +72,35 @@ export default class HwpxWriterPlugin extends Plugin {
   }
 
   async exportCurrentFile() {
-    // 사이드바가 활성화된 상태에서도 편집 중인 .md 파일을 찾음
-    let file: TFile | null = null;
-
-    // 방법 1: 활성 MarkdownView에서
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (activeView?.file) {
-      file = activeView.file;
-    }
-
-    // 방법 2: 모든 leaf에서 마지막 활성 markdown 파일 찾기
-    if (!file) {
-      const leaves = this.app.workspace.getLeavesOfType("markdown");
-      if (leaves.length > 0) {
-        const view = leaves[0].view as MarkdownView;
-        if (view?.file) file = view.file;
-      }
-    }
-
+    const file = this.findMarkdownFile();
     if (!file) {
       new Notice("변환할 Markdown 파일이 없습니다. .md 파일을 열어주세요.");
       return;
     }
     await this.exportFile(file);
+  }
+
+  /** 현재 열려있는 .md 파일을 찾는다 (사이드바 포커스 상태에서도 동작). */
+  findMarkdownFile(): TFile | null {
+    // 방법 1: 활성 MarkdownView
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (activeView?.file) return activeView.file;
+
+    // 방법 2: 모든 leaf 순회하며 MarkdownView 찾기
+    let found: TFile | null = null;
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      if (found) return;
+      if (leaf.view instanceof MarkdownView && leaf.view.file) {
+        found = leaf.view.file;
+      }
+    });
+    if (found) return found;
+
+    // 방법 3: 최근 활성 파일
+    const recentFile = this.app.workspace.getActiveFile();
+    if (recentFile && recentFile.extension === "md") return recentFile;
+
+    return null;
   }
 
   async exportFile(file: TFile) {

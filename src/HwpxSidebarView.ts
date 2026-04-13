@@ -296,13 +296,9 @@ export class HwpxSidebarView extends ItemView {
   private async refreshPreview() {
     if (!this.previewEl) return;
 
-    // 현재 Markdown 파일 찾기
-    let mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!mdView) {
-      const leaves = this.app.workspace.getLeavesOfType("markdown");
-      if (leaves.length > 0) mdView = leaves[0].view as MarkdownView;
-    }
-    if (!mdView?.file) {
+    // 현재 Markdown 파일 찾기 (plugin의 공통 메서드 사용)
+    const file = this.plugin.findMarkdownFile();
+    if (!file) {
       this.previewEl.setText("Markdown 파일을 열어주세요.");
       return;
     }
@@ -311,7 +307,7 @@ export class HwpxSidebarView extends ItemView {
 
     try {
       // Markdown → HWPX bytes
-      const markdown = await this.app.vault.read(mdView.file);
+      const markdown = await this.app.vault.read(file);
       const hwpxBytes = await convertMarkdownToHwpx(markdown, this.plugin.settings);
 
       // @rhwp/core로 렌더링
