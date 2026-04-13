@@ -15,6 +15,9 @@ export async function convertMarkdownToHwpx(
   markdown: string,
   settings: HwpxWriterSettings,
 ): Promise<Uint8Array> {
+  // 설정 적용
+  setBulletChars(settings.listBulletChars || "ㅇ,-,∙,●");
+
   const doc = new HwpxDocument({ title: "", creator: "Obsidian HWPX Writer" });
 
   const sec = doc.addSection({
@@ -278,6 +281,14 @@ function buildTable(
 
 function registerStyles(doc: HwpxDocument, settings: HwpxWriterSettings) {
   const bodyCharPrId = doc.addCharProperty(new CharProperties({ height: pt(settings.bodyFontSize) }));
+  const bodyParaPrId = settings.bodyIndent || settings.bodySpacingBefore || settings.bodySpacingAfter || settings.bodyAlign !== "JUSTIFY"
+    ? doc.addParaProperty(new ParaProperties({
+        indent: mm(settings.bodyIndent || 0),
+        spacingBefore: mm(settings.bodySpacingBefore || 0),
+        spacingAfter: mm(settings.bodySpacingAfter || 0),
+        alignHorizontal: settings.bodyAlign || "JUSTIFY",
+      }))
+    : 0;
   const headingCharPrIds: number[] = [];
   const headingParaPrIds: number[] = [];
   for (let i = 0; i < 6; i++) {
@@ -323,8 +334,16 @@ function registerStyles(doc: HwpxDocument, settings: HwpxWriterSettings) {
   };
 }
 
+let _bulletChars = ["ㅇ ", "- ", "∙ ", "● "];
+
+function setBulletChars(chars: string) {
+  if (chars) {
+    _bulletChars = chars.split(",").map(c => c.trim() + " ");
+  }
+}
+
 function getBulletChar(level: number): string {
-  return ["ㅇ ", "- ", "∙ ", "● "][level % 4];
+  return _bulletChars[level % _bulletChars.length];
 }
 
 function getPaperWidth(size: string): number {

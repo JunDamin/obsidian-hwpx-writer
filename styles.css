@@ -283,6 +283,12 @@
   font-weight: 600;
 }
 
+.hwpx-select-sm {
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
 .hwpx-color-input-sm {
   width: 22px;
   height: 20px;

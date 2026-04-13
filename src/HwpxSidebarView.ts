@@ -92,8 +92,20 @@ export class HwpxSidebarView extends ItemView {
       this.buildStyleSettings(el);
     });
 
+    this.buildCollapsibleSection(container, "본문", (el) => {
+      this.buildBodySettings(el);
+    });
+
+    this.buildCollapsibleSection(container, "리스트", (el) => {
+      this.buildListSettings(el);
+    });
+
     this.buildCollapsibleSection(container, "표 설정", (el) => {
       this.buildTableSettings(el);
+    });
+
+    this.buildCollapsibleSection(container, "코드 블록", (el) => {
+      this.buildCodeSettings(el);
     });
 
     this.buildCollapsibleSection(container, "템플릿 관리", (el) => {
@@ -302,26 +314,151 @@ export class HwpxSidebarView extends ItemView {
   private buildTableSettings(el: HTMLElement) {
     const s = this.plugin.settings;
 
-    const bgRow = el.createDiv("hwpx-setting-row");
-    bgRow.createEl("span", { text: "머리행 배경" });
-    const colorInput = bgRow.createEl("input", {
-      type: "color",
-      cls: "hwpx-color-input",
-      value: s.tableHeaderBgColor,
-    });
-    colorInput.addEventListener("change", async () => {
-      this.plugin.settings.tableHeaderBgColor = colorInput.value;
+    // 머리행
+    el.createEl("div", { text: "머리행", cls: "hwpx-label" });
+    const hdrRow = el.createDiv("hwpx-setting-row");
+    hdrRow.createEl("span", { text: "배경" });
+    this.addColorInput(hdrRow, s.tableHeaderBgColor, (v) => { this.plugin.settings.tableHeaderBgColor = v; });
+    this.addNumInput(hdrRow, s.tableHeaderFontSize, "pt", (v) => { this.plugin.settings.tableHeaderFontSize = v; });
+    const hdrBoldBtn = hdrRow.createEl("button", { text: "B", cls: `hwpx-toggle-btn hwpx-bold-btn ${s.tableHeaderBold ? "active" : ""}` });
+    hdrBoldBtn.addEventListener("click", async () => {
+      this.plugin.settings.tableHeaderBold = !this.plugin.settings.tableHeaderBold;
+      hdrBoldBtn.toggleClass("active", this.plugin.settings.tableHeaderBold);
       await this.plugin.saveSettings();
     });
 
+    // 본문 크기
+    const bodyRow = el.createDiv("hwpx-setting-row");
+    bodyRow.createEl("span", { text: "본문" });
+    this.addNumInput(bodyRow, s.tableBodyFontSize, "pt", (v) => { this.plugin.settings.tableBodyFontSize = v; });
+
+    // 반복
     const repeatRow = el.createDiv("hwpx-setting-row");
-    const repeatCb = repeatRow.createEl("input", { type: "checkbox" });
-    (repeatCb as HTMLInputElement).checked = s.tableRepeatHeader;
-    repeatRow.createEl("span", { text: " 머리행 반복" });
-    repeatCb.addEventListener("change", async () => {
-      this.plugin.settings.tableRepeatHeader = (repeatCb as HTMLInputElement).checked;
+    this.addCheckbox(repeatRow, s.tableRepeatHeader, "머리행 반복", (v) => { this.plugin.settings.tableRepeatHeader = v; });
+
+    // 테두리
+    el.createEl("div", { text: "테두리", cls: "hwpx-label" });
+    const borderRow = el.createDiv("hwpx-setting-row");
+    const borderSelect = borderRow.createEl("select", { cls: "hwpx-select-sm" });
+    for (const [val, label] of [["SOLID", "실선"], ["DASH", "파선"], ["DOT", "점선"], ["NONE", "없음"]]) {
+      borderSelect.createEl("option", { text: label, value: val });
+    }
+    (borderSelect as HTMLSelectElement).value = s.tableBorderStyle;
+    borderSelect.addEventListener("change", async () => {
+      this.plugin.settings.tableBorderStyle = (borderSelect as HTMLSelectElement).value;
       await this.plugin.saveSettings();
     });
+    this.addColorInput(borderRow, s.tableBorderColor, (v) => { this.plugin.settings.tableBorderColor = v; });
+
+    // 셀 여백
+    const padRow = el.createDiv("hwpx-setting-row");
+    padRow.createEl("span", { text: "셀 여백" });
+    padRow.createEl("span", { text: "좌우", cls: "hwpx-unit" });
+    this.addNumInput(padRow, s.tableCellPaddingH, "mm", (v) => { this.plugin.settings.tableCellPaddingH = v; });
+    padRow.createEl("span", { text: "상하", cls: "hwpx-unit" });
+    this.addNumInput(padRow, s.tableCellPaddingV, "mm", (v) => { this.plugin.settings.tableCellPaddingV = v; });
+  }
+
+  // ── 헬퍼 메서드 ──
+
+  private addNumInput(parent: HTMLElement, value: number, unit: string, onChange: (v: number) => void) {
+    const input = parent.createEl("input", { type: "number", cls: "hwpx-num-input-sm", value: String(value) });
+    parent.createEl("span", { text: unit, cls: "hwpx-unit" });
+    input.addEventListener("change", async () => {
+      onChange(Number(input.value) || 0);
+      await this.plugin.saveSettings();
+    });
+    return input;
+  }
+
+  private addColorInput(parent: HTMLElement, value: string, onChange: (v: string) => void) {
+    const input = parent.createEl("input", { type: "color", cls: "hwpx-color-input-sm", value });
+    input.addEventListener("change", async () => {
+      onChange(input.value);
+      await this.plugin.saveSettings();
+    });
+    return input;
+  }
+
+  private addCheckbox(parent: HTMLElement, value: boolean, label: string, onChange: (v: boolean) => void) {
+    const cb = parent.createEl("input", { type: "checkbox" });
+    (cb as HTMLInputElement).checked = value;
+    parent.createEl("span", { text: ` ${label}`, cls: "hwpx-unit" });
+    cb.addEventListener("change", async () => {
+      onChange((cb as HTMLInputElement).checked);
+      await this.plugin.saveSettings();
+    });
+  }
+
+  private buildBodySettings(el: HTMLElement) {
+    const s = this.plugin.settings;
+
+    // 정렬
+    const alignRow = el.createDiv("hwpx-setting-row");
+    alignRow.createEl("span", { text: "정렬" });
+    const alignBtns = alignRow.createDiv("hwpx-btn-group");
+    for (const [label, val] of [["양쪽", "JUSTIFY"], ["좌", "LEFT"], ["중앙", "CENTER"], ["우", "RIGHT"]] as const) {
+      const btn = alignBtns.createEl("button", { text: label, cls: `hwpx-toggle-btn ${s.bodyAlign === val ? "active" : ""}` });
+      btn.addEventListener("click", async () => {
+        this.plugin.settings.bodyAlign = val;
+        await this.plugin.saveSettings();
+        alignBtns.querySelectorAll("button").forEach(b => b.removeClass("active"));
+        btn.addClass("active");
+      });
+    }
+
+    // 첫줄 들여쓰기
+    const indentRow = el.createDiv("hwpx-setting-row");
+    indentRow.createEl("span", { text: "첫줄 들여쓰기" });
+    this.addNumInput(indentRow, s.bodyIndent, "mm", (v) => { this.plugin.settings.bodyIndent = v; });
+
+    // 문단 간격
+    const spRow = el.createDiv("hwpx-setting-row");
+    spRow.createEl("span", { text: "간격" });
+    spRow.createEl("span", { text: "앞", cls: "hwpx-unit" });
+    this.addNumInput(spRow, s.bodySpacingBefore, "mm", (v) => { this.plugin.settings.bodySpacingBefore = v; });
+    spRow.createEl("span", { text: "뒤", cls: "hwpx-unit" });
+    this.addNumInput(spRow, s.bodySpacingAfter, "mm", (v) => { this.plugin.settings.bodySpacingAfter = v; });
+  }
+
+  private buildListSettings(el: HTMLElement) {
+    const s = this.plugin.settings;
+
+    // 글머리표 문자
+    const bulletRow = el.createDiv("hwpx-setting-row");
+    bulletRow.createEl("span", { text: "글머리표" });
+    const bulletInput = bulletRow.createEl("input", { cls: "hwpx-text-input", value: s.listBulletChars });
+    bulletInput.setAttribute("placeholder", "ㅇ,-,∙,●");
+    bulletInput.addEventListener("change", async () => {
+      this.plugin.settings.listBulletChars = bulletInput.value;
+      await this.plugin.saveSettings();
+    });
+
+    // 들여쓰기
+    const indentRow = el.createDiv("hwpx-setting-row");
+    indentRow.createEl("span", { text: "들여쓰기/레벨" });
+    this.addNumInput(indentRow, s.listIndentPerLevel, "mm", (v) => { this.plugin.settings.listIndentPerLevel = v; });
+
+    // 글꼴 크기
+    const fsRow = el.createDiv("hwpx-setting-row");
+    fsRow.createEl("span", { text: "글꼴 크기" });
+    this.addNumInput(fsRow, s.listFontSize, "pt", (v) => { this.plugin.settings.listFontSize = v; });
+  }
+
+  private buildCodeSettings(el: HTMLElement) {
+    const s = this.plugin.settings;
+
+    const fontRow = el.createDiv("hwpx-setting-row");
+    fontRow.createEl("span", { text: "폰트" });
+    const fontInput = fontRow.createEl("input", { cls: "hwpx-text-input", value: s.codeFontName });
+    fontInput.addEventListener("change", async () => {
+      this.plugin.settings.codeFontName = fontInput.value;
+      await this.plugin.saveSettings();
+    });
+
+    const fsRow = el.createDiv("hwpx-setting-row");
+    fsRow.createEl("span", { text: "크기" });
+    this.addNumInput(fsRow, s.codeFontSize, "pt", (v) => { this.plugin.settings.codeFontSize = v; });
   }
 
   private buildTemplateManager(el: HTMLElement) {

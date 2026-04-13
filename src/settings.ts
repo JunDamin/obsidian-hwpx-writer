@@ -38,8 +38,32 @@ export interface HwpxWriterSettings {
 
   // 표
   tableHeaderBgColor: string;
+  tableHeaderFontSize: number;   // pt
+  tableHeaderBold: boolean;
+  tableHeaderAlign: string;
+  tableBodyFontSize: number;     // pt
   tableRepeatHeader: boolean;
   tableBorderStyle: string;
+  tableBorderWidth: string;
+  tableBorderColor: string;
+  tableCellPaddingH: number;     // mm (좌우)
+  tableCellPaddingV: number;     // mm (상하)
+
+  // 본문
+  bodyIndent: number;           // mm (첫줄 들여쓰기)
+  bodySpacingBefore: number;    // mm (문단 앞 간격)
+  bodySpacingAfter: number;     // mm (문단 뒤 간격)
+  bodyAlign: string;
+
+  // 리스트
+  listBulletChars: string;      // 레벨별 글머리표 (쉼표 구분)
+  listIndentPerLevel: number;   // mm (레벨당 들여쓰기)
+  listFontSize: number;         // pt
+  listLineSpacing: number;      // %
+
+  // 코드 블록
+  codeFontName: string;
+  codeFontSize: number;         // pt
 
   // 템플릿
   templates: string[];  // 템플릿 파일명 목록
@@ -74,8 +98,29 @@ export const DEFAULT_SETTINGS: HwpxWriterSettings = {
   linkColor: "#0000FF",
 
   tableHeaderBgColor: "#D5E8F0",
+  tableHeaderFontSize: 10,
+  tableHeaderBold: true,
+  tableHeaderAlign: "CENTER",
+  tableBodyFontSize: 10,
   tableRepeatHeader: true,
   tableBorderStyle: "SOLID",
+  tableBorderWidth: "0.12 mm",
+  tableBorderColor: "#000000",
+  tableCellPaddingH: 2,
+  tableCellPaddingV: 1,
+
+  bodyIndent: 0,
+  bodySpacingBefore: 0,
+  bodySpacingAfter: 0,
+  bodyAlign: "JUSTIFY",
+
+  listBulletChars: "ㅇ,-,∙,●",
+  listIndentPerLevel: 7,
+  listFontSize: 10,
+  listLineSpacing: 160,
+
+  codeFontName: "D2Coding",
+  codeFontSize: 9,
 
   templates: [],
 };
