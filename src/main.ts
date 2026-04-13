@@ -1,6 +1,7 @@
 import { Plugin, MarkdownView, TFile, Notice } from "obsidian";
 import { HwpxSidebarView, VIEW_TYPE_HWPX } from "./HwpxSidebarView";
 import { HwpxWriterSettings, DEFAULT_SETTINGS, HwpxSettingTab } from "./settings";
+import { convertMarkdownToHwpx } from "./converter/MarkdownToHwpx";
 
 export default class HwpxWriterPlugin extends Plugin {
   settings: HwpxWriterSettings = DEFAULT_SETTINGS;
@@ -84,13 +85,10 @@ export default class HwpxWriterPlugin extends Plugin {
       new Notice(`변환 중: ${file.basename}...`);
       const markdown = await this.app.vault.read(file);
 
-      // TODO: Phase 1에서 구현
-      // const hwpxBytes = await convertMarkdownToHwpx(markdown, this.settings);
-      // const outputPath = this.getOutputPath(file);
-      // await this.app.vault.createBinary(outputPath, hwpxBytes.buffer);
-      // new Notice(`변환 완료: ${outputPath}`);
-
-      new Notice("변환 기능이 곧 추가됩니다!");
+      const hwpxBytes = await convertMarkdownToHwpx(markdown, this.settings);
+      const outputPath = this.getOutputPath(file);
+      await this.app.vault.createBinary(outputPath, hwpxBytes.buffer as ArrayBuffer);
+      new Notice(`✅ 변환 완료: ${outputPath}`);
     } catch (error) {
       new Notice(`변환 실패: ${error}`);
       console.error("HWPX export error:", error);
