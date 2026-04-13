@@ -48,6 +48,24 @@
   color: var(--text-muted);
 }
 
+.hwpx-preview-btn-row {
+  margin-top: 6px;
+}
+
+.hwpx-preview-btn {
+  width: 100%;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--background-modifier-hover);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.hwpx-preview-btn:hover {
+  background: var(--background-modifier-active-hover);
+}
+
 /* 변환 섹션 */
 .hwpx-convert-section {
   margin-bottom: 12px;

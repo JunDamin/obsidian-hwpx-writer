@@ -37,13 +37,6 @@ export class HwpxSidebarView extends ItemView {
     container.addClass("hwpx-sidebar");
 
     this.buildUI(container);
-
-    // 파일 변경 감지
-    this.registerEvent(
-      this.app.workspace.on("active-leaf-change", () => {
-        this.onActiveFileChange();
-      })
-    );
   }
 
   async onClose() {
@@ -62,8 +55,14 @@ export class HwpxSidebarView extends ItemView {
     this.pageInfoEl = previewNav.createEl("span", { text: "- / -", cls: "hwpx-page-info" });
     previewNav.createEl("button", { text: "▶", cls: "hwpx-nav-btn" })
       .addEventListener("click", () => this.nextPage());
-    previewNav.createEl("button", { text: "🔄", cls: "hwpx-refresh-btn" })
-      .addEventListener("click", () => this.refreshPreview());
+
+    // 미리보기 생성 버튼 (수동)
+    const previewBtnRow = previewSection.createDiv("hwpx-preview-btn-row");
+    const previewBtn = previewBtnRow.createEl("button", {
+      text: "🔄 미리보기 생성",
+      cls: "hwpx-preview-btn",
+    });
+    previewBtn.addEventListener("click", () => this.refreshPreview());
 
     // ── 변환 버튼 ──
     const convertSection = container.createDiv("hwpx-convert-section");
@@ -293,16 +292,6 @@ export class HwpxSidebarView extends ItemView {
     defaultItem.createEl("span", { text: "[활성]", cls: "hwpx-badge" });
   }
 
-  private onActiveFileChange() {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (view?.file) {
-      // 디바운스로 미리보기 업데이트
-      if (this.debounceTimer) clearTimeout(this.debounceTimer);
-      this.debounceTimer = window.setTimeout(() => {
-        this.refreshPreview();
-      }, 1000);
-    }
-  }
 
   private async refreshPreview() {
     if (!this.previewEl) return;
