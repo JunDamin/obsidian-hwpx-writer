@@ -2,14 +2,17 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type HwpxWriterPlugin from "./main";
 
 export interface HeadingStyle {
-  fontSize: number;   // pt
+  fontSize: number;       // pt
   bold: boolean;
   italic: boolean;
   pageBreakBefore: boolean;
-  spaceBefore: number; // mm (헤딩 앞 간격)
-  spaceAfter: number;  // mm (헤딩 뒤 간격)
-  color: string;       // #RRGGBB
-  fontName: string;    // 빈 문자열이면 본문 폰트 사용
+  blankLinesBefore: number;  // 헤딩 앞 빈 줄 수 (0이면 없음)
+  blankLinesAfter: number;   // 헤딩 뒤 빈 줄 수
+  blankLineHeight: number;   // 빈 줄 높이 (pt, 0이면 본문 크기)
+  spaceBefore: number;       // mm (문단 속성 앞 간격)
+  spaceAfter: number;        // mm (문단 속성 뒤 간격)
+  color: string;             // #RRGGBB
+  fontName: string;          // 빈 문자열이면 본문 폰트 사용
 }
 
 export interface HwpxWriterSettings {
@@ -88,12 +91,12 @@ export const DEFAULT_SETTINGS: HwpxWriterSettings = {
   bodyFontSize: 10,
   lineSpacing: 160,
   headingStyles: [
-    { fontSize: 22, bold: true, italic: false, pageBreakBefore: true, spaceBefore: 10, spaceAfter: 5, color: "#000000", fontName: "" },
-    { fontSize: 18, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 8, spaceAfter: 4, color: "#000000", fontName: "" },
-    { fontSize: 16, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 6, spaceAfter: 3, color: "#000000", fontName: "" },
-    { fontSize: 14, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 4, spaceAfter: 2, color: "#000000", fontName: "" },
-    { fontSize: 12, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 3, spaceAfter: 2, color: "#000000", fontName: "" },
-    { fontSize: 11, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 2, spaceAfter: 1, color: "#000000", fontName: "" },
+    { fontSize: 22, bold: true, italic: false, pageBreakBefore: true, blankLinesBefore: 0, blankLinesAfter: 1, blankLineHeight: 0, spaceBefore: 10, spaceAfter: 5, color: "#000000", fontName: "" },
+    { fontSize: 18, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 2, blankLinesAfter: 1, blankLineHeight: 5, spaceBefore: 8, spaceAfter: 4, color: "#000000", fontName: "" },
+    { fontSize: 16, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 1, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 6, spaceAfter: 3, color: "#000000", fontName: "" },
+    { fontSize: 14, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 1, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 4, spaceAfter: 2, color: "#000000", fontName: "" },
+    { fontSize: 12, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 3, spaceAfter: 2, color: "#000000", fontName: "" },
+    { fontSize: 11, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 2, spaceAfter: 1, color: "#000000", fontName: "" },
   ],
   linkColor: "#0000FF",
 

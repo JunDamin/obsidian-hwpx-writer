@@ -38,6 +38,7 @@ export async function convertMarkdownToHwpx(
   // 줄 단위 파싱
   const lines = markdown.split("\n");
   let i = 0;
+  let isFirstBlock = true;
 
   while (i < lines.length) {
     const line = lines[i];
@@ -63,17 +64,36 @@ export async function convertMarkdownToHwpx(
       const text = headingMatch[2].trim();
       const charPrId = styles.headingCharPrIds[level] || styles.bodyCharPrId;
       const paraPrId = styles.headingParaPrIds[level] || 0;
-      const p = new Paragraph(paraPrId);
-      addFormattedRuns(p, text, styles);
-      // 헤딩은 헤딩 charPr 사용
-      if (p.runs.length === 0) p.addRun(text, charPrId);
-      else {
-        // runs의 charPrId를 헤딩용으로 교체 (bold+크기)
-        p.runs = [];
-        (p as any).inlineItems = [];
-        addFormattedRunsWithBase(p, text, styles, charPrId);
+      const hs = settings.headingStyles[level];
+
+      // 빈 줄 삽입 (헤딩 앞) — 첫 블록이 아닐 때만
+      if (!isFirstBlock && hs?.blankLinesBefore) {
+        const blankHeight = hs.blankLineHeight ? pt(hs.blankLineHeight) : pt(settings.bodyFontSize);
+        const blankPpId = doc.addParaProperty(new ParaProperties({
+          lineSpacingType: "FIXED", lineSpacingValue: blankHeight,
+        }));
+        for (let b = 0; b < hs.blankLinesBefore; b++) {
+          sec.addParagraph("", { paraPrId: blankPpId });
+        }
       }
+
+      // 헤딩 문단
+      const p = new Paragraph(paraPrId);
+      addFormattedRunsWithBase(p, text, styles, charPrId);
       sec.addParagraph(p);
+
+      // 빈 줄 삽입 (헤딩 뒤)
+      if (hs?.blankLinesAfter) {
+        const blankHeight = hs.blankLineHeight ? pt(hs.blankLineHeight) : pt(settings.bodyFontSize);
+        const blankPpId = doc.addParaProperty(new ParaProperties({
+          lineSpacingType: "FIXED", lineSpacingValue: blankHeight,
+        }));
+        for (let b = 0; b < hs.blankLinesAfter; b++) {
+          sec.addParagraph("", { paraPrId: blankPpId });
+        }
+      }
+
+      isFirstBlock = false;
       i++;
       continue;
     }

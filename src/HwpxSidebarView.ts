@@ -287,27 +287,23 @@ export class HwpxSidebarView extends ItemView {
         await this.plugin.saveSettings();
       });
 
-      // 행 2: 앞간격 + 뒤간격 (접이식 아래에 인라인으로)
+      // 행 2: 빈줄 앞/뒤 + 빈줄 높이
       const row2 = el.createDiv("hwpx-heading-spacing");
       row2.createEl("span", { text: "  ", cls: "hwpx-heading-label" });
-      row2.createEl("span", { text: "앞", cls: "hwpx-unit" });
-      const sbInput = row2.createEl("input", {
-        type: "number", cls: "hwpx-num-input-sm", value: String(hs.spaceBefore ?? 0),
-      });
-      sbInput.addEventListener("change", async () => {
-        this.plugin.settings.headingStyles[i].spaceBefore = Number(sbInput.value) || 0;
-        await this.plugin.saveSettings();
-      });
-      row2.createEl("span", { text: "mm", cls: "hwpx-unit" });
-      row2.createEl("span", { text: "뒤", cls: "hwpx-unit" });
-      const saInput = row2.createEl("input", {
-        type: "number", cls: "hwpx-num-input-sm", value: String(hs.spaceAfter ?? 0),
-      });
-      saInput.addEventListener("change", async () => {
-        this.plugin.settings.headingStyles[i].spaceAfter = Number(saInput.value) || 0;
-        await this.plugin.saveSettings();
-      });
-      row2.createEl("span", { text: "mm", cls: "hwpx-unit" });
+      row2.createEl("span", { text: "빈줄↑", cls: "hwpx-unit", attr: { title: "헤딩 앞 빈 줄 수" } });
+      this.addNumInput(row2, hs.blankLinesBefore ?? 0, "", (v) => { this.plugin.settings.headingStyles[i].blankLinesBefore = v; });
+      row2.createEl("span", { text: "↓", cls: "hwpx-unit", attr: { title: "헤딩 뒤 빈 줄 수" } });
+      this.addNumInput(row2, hs.blankLinesAfter ?? 0, "", (v) => { this.plugin.settings.headingStyles[i].blankLinesAfter = v; });
+      row2.createEl("span", { text: "높이", cls: "hwpx-unit", attr: { title: "빈 줄 높이 (pt, 0=본문크기)" } });
+      this.addNumInput(row2, hs.blankLineHeight ?? 0, "pt", (v) => { this.plugin.settings.headingStyles[i].blankLineHeight = v; });
+
+      // 행 3: 문단 간격 앞/뒤 (mm)
+      const row3 = el.createDiv("hwpx-heading-spacing");
+      row3.createEl("span", { text: "  ", cls: "hwpx-heading-label" });
+      row3.createEl("span", { text: "간격↑", cls: "hwpx-unit" });
+      this.addNumInput(row3, hs.spaceBefore ?? 0, "mm", (v) => { this.plugin.settings.headingStyles[i].spaceBefore = v; });
+      row3.createEl("span", { text: "↓", cls: "hwpx-unit" });
+      this.addNumInput(row3, hs.spaceAfter ?? 0, "mm", (v) => { this.plugin.settings.headingStyles[i].spaceAfter = v; });
     }
   }
 
