@@ -8,6 +8,7 @@ export class HwpxSidebarView extends ItemView {
   plugin: HwpxWriterPlugin;
   private previewEl: HTMLElement | null = null;
   private pageInfoEl: HTMLElement | null = null;
+  private resultEl: HTMLElement | null = null;
   private debounceTimer: number | null = null;
   private currentPage = 0;
   private totalPages = 0;
@@ -77,6 +78,10 @@ export class HwpxSidebarView extends ItemView {
       cls: "hwpx-export-btn",
     });
     exportBtn.addEventListener("click", () => this.plugin.exportCurrentFile());
+
+    // ── 내보내기 결과 영역 ──
+    this.resultEl = convertSection.createDiv("hwpx-result-section");
+    this.resultEl.style.display = "none";
 
     // ── 접이식 설정 섹션들 ──
     this.buildCollapsibleSection(container, "페이지 설정", (el) => {
@@ -214,17 +219,18 @@ export class HwpxSidebarView extends ItemView {
     });
     lsRow.createEl("span", { text: "%", cls: "hwpx-unit" });
 
-    // 헤딩 스타일 H1~H4
+    // 헤딩 스타일 H1~H6
     el.createEl("hr");
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       const hs = s.headingStyles[i];
+      if (!hs) continue;
+
+      // 행 1: H번호 + 크기 + B + I + 페이지나누기 + 색상
       const row = el.createDiv("hwpx-heading-row");
       row.createEl("span", { text: `H${i + 1}`, cls: "hwpx-heading-label" });
 
       const fsInput = row.createEl("input", {
-        type: "number",
-        cls: "hwpx-num-input-sm",
-        value: String(hs.fontSize),
+        type: "number", cls: "hwpx-num-input-sm", value: String(hs.fontSize),
       });
       fsInput.addEventListener("change", async () => {
         this.plugin.settings.headingStyles[i].fontSize = Number(fsInput.value) || 10;
@@ -233,8 +239,7 @@ export class HwpxSidebarView extends ItemView {
       row.createEl("span", { text: "pt", cls: "hwpx-unit" });
 
       const boldBtn = row.createEl("button", {
-        text: "B",
-        cls: `hwpx-toggle-btn hwpx-bold-btn ${hs.bold ? "active" : ""}`,
+        text: "B", cls: `hwpx-toggle-btn hwpx-bold-btn ${hs.bold ? "active" : ""}`,
       });
       boldBtn.addEventListener("click", async () => {
         this.plugin.settings.headingStyles[i].bold = !this.plugin.settings.headingStyles[i].bold;
@@ -242,17 +247,55 @@ export class HwpxSidebarView extends ItemView {
         await this.plugin.saveSettings();
       });
 
+      const italicBtn = row.createEl("button", {
+        text: "I", cls: `hwpx-toggle-btn ${hs.italic ? "active" : ""}`,
+        attr: { style: "font-style:italic" },
+      });
+      italicBtn.addEventListener("click", async () => {
+        this.plugin.settings.headingStyles[i].italic = !this.plugin.settings.headingStyles[i].italic;
+        italicBtn.toggleClass("active", this.plugin.settings.headingStyles[i].italic);
+        await this.plugin.saveSettings();
+      });
+
       const pbBtn = row.createEl("button", {
-        text: "↵",
-        cls: `hwpx-toggle-btn ${hs.pageBreakBefore ? "active" : ""}`,
+        text: "↵", cls: `hwpx-toggle-btn ${hs.pageBreakBefore ? "active" : ""}`,
         title: "페이지 나누기",
       });
       pbBtn.addEventListener("click", async () => {
-        this.plugin.settings.headingStyles[i].pageBreakBefore =
-          !this.plugin.settings.headingStyles[i].pageBreakBefore;
+        this.plugin.settings.headingStyles[i].pageBreakBefore = !this.plugin.settings.headingStyles[i].pageBreakBefore;
         pbBtn.toggleClass("active", this.plugin.settings.headingStyles[i].pageBreakBefore);
         await this.plugin.saveSettings();
       });
+
+      const colorInput = row.createEl("input", {
+        type: "color", cls: "hwpx-color-input-sm", value: hs.color || "#000000",
+      });
+      colorInput.addEventListener("change", async () => {
+        this.plugin.settings.headingStyles[i].color = colorInput.value;
+        await this.plugin.saveSettings();
+      });
+
+      // 행 2: 앞간격 + 뒤간격 (접이식 아래에 인라인으로)
+      const row2 = el.createDiv("hwpx-heading-spacing");
+      row2.createEl("span", { text: "  ", cls: "hwpx-heading-label" });
+      row2.createEl("span", { text: "앞", cls: "hwpx-unit" });
+      const sbInput = row2.createEl("input", {
+        type: "number", cls: "hwpx-num-input-sm", value: String(hs.spaceBefore ?? 0),
+      });
+      sbInput.addEventListener("change", async () => {
+        this.plugin.settings.headingStyles[i].spaceBefore = Number(sbInput.value) || 0;
+        await this.plugin.saveSettings();
+      });
+      row2.createEl("span", { text: "mm", cls: "hwpx-unit" });
+      row2.createEl("span", { text: "뒤", cls: "hwpx-unit" });
+      const saInput = row2.createEl("input", {
+        type: "number", cls: "hwpx-num-input-sm", value: String(hs.spaceAfter ?? 0),
+      });
+      saInput.addEventListener("change", async () => {
+        this.plugin.settings.headingStyles[i].spaceAfter = Number(saInput.value) || 0;
+        await this.plugin.saveSettings();
+      });
+      row2.createEl("span", { text: "mm", cls: "hwpx-unit" });
     }
   }
 
@@ -292,6 +335,46 @@ export class HwpxSidebarView extends ItemView {
     defaultItem.createEl("span", { text: "[활성]", cls: "hwpx-badge" });
   }
 
+
+  /** 내보내기 결과 버튼 표시 */
+  showExportResult(fullPath: string, vaultPath: string) {
+    if (!this.resultEl) return;
+    this.resultEl.empty();
+    this.resultEl.style.display = "block";
+
+    const info = this.resultEl.createDiv("hwpx-result-info");
+    info.createEl("span", { text: `✅ ${vaultPath}`, cls: "hwpx-result-path" });
+
+    const btnRow = this.resultEl.createDiv("hwpx-result-btns");
+
+    // 파일 열기 (한컴오피스)
+    const openFileBtn = btnRow.createEl("button", {
+      text: "📄 파일 열기",
+      cls: "hwpx-result-btn",
+    });
+    openFileBtn.addEventListener("click", () => {
+      try {
+        const { shell } = require("electron");
+        shell.openPath(fullPath);
+      } catch (e) {
+        new Notice("파일 열기 실패");
+      }
+    });
+
+    // 폴더 열기
+    const openFolderBtn = btnRow.createEl("button", {
+      text: "📂 폴더 열기",
+      cls: "hwpx-result-btn",
+    });
+    openFolderBtn.addEventListener("click", () => {
+      try {
+        const { shell } = require("electron");
+        shell.showItemInFolder(fullPath);
+      } catch (e) {
+        new Notice("폴더 열기 실패");
+      }
+    });
+  }
 
   private async refreshPreview() {
     if (!this.previewEl) return;

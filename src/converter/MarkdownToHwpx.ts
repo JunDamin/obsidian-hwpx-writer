@@ -281,9 +281,18 @@ function registerStyles(doc: HwpxDocument, settings: HwpxWriterSettings) {
   const headingCharPrIds: number[] = [];
   const headingParaPrIds: number[] = [];
   for (let i = 0; i < 6; i++) {
-    const hs = settings.headingStyles[i] || { fontSize: 10, bold: true, pageBreakBefore: false };
-    headingCharPrIds.push(doc.addCharProperty(new CharProperties({ height: pt(hs.fontSize), bold: hs.bold })));
-    headingParaPrIds.push(doc.addParaProperty(new ParaProperties({ pageBreakBefore: hs.pageBreakBefore })));
+    const hs = settings.headingStyles[i] || { fontSize: 10, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 0, spaceAfter: 0, color: "#000000", fontName: "" };
+    headingCharPrIds.push(doc.addCharProperty(new CharProperties({
+      height: pt(hs.fontSize),
+      bold: hs.bold,
+      italic: hs.italic || false,
+      textColor: hs.color || "#000000",
+    })));
+    headingParaPrIds.push(doc.addParaProperty(new ParaProperties({
+      pageBreakBefore: hs.pageBreakBefore,
+      spacingBefore: mm(hs.spaceBefore || 0),
+      spacingAfter: mm(hs.spaceAfter || 0),
+    })));
   }
   const boldCharPrId = doc.addCharProperty(new CharProperties({ height: pt(settings.bodyFontSize), bold: true }));
   const italicCharPrId = doc.addCharProperty(new CharProperties({ height: pt(settings.bodyFontSize), italic: true }));

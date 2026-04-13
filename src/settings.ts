@@ -2,9 +2,14 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type HwpxWriterPlugin from "./main";
 
 export interface HeadingStyle {
-  fontSize: number;  // pt
+  fontSize: number;   // pt
   bold: boolean;
+  italic: boolean;
   pageBreakBefore: boolean;
+  spaceBefore: number; // mm (헤딩 앞 간격)
+  spaceAfter: number;  // mm (헤딩 뒤 간격)
+  color: string;       // #RRGGBB
+  fontName: string;    // 빈 문자열이면 본문 폰트 사용
 }
 
 export interface HwpxWriterSettings {
@@ -59,12 +64,12 @@ export const DEFAULT_SETTINGS: HwpxWriterSettings = {
   bodyFontSize: 10,
   lineSpacing: 160,
   headingStyles: [
-    { fontSize: 22, bold: true, pageBreakBefore: true },   // H1
-    { fontSize: 18, bold: true, pageBreakBefore: false },  // H2
-    { fontSize: 16, bold: true, pageBreakBefore: false },  // H3
-    { fontSize: 14, bold: true, pageBreakBefore: false },  // H4
-    { fontSize: 12, bold: true, pageBreakBefore: false },  // H5
-    { fontSize: 11, bold: true, pageBreakBefore: false },  // H6
+    { fontSize: 22, bold: true, italic: false, pageBreakBefore: true, spaceBefore: 10, spaceAfter: 5, color: "#000000", fontName: "" },
+    { fontSize: 18, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 8, spaceAfter: 4, color: "#000000", fontName: "" },
+    { fontSize: 16, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 6, spaceAfter: 3, color: "#000000", fontName: "" },
+    { fontSize: 14, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 4, spaceAfter: 2, color: "#000000", fontName: "" },
+    { fontSize: 12, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 3, spaceAfter: 2, color: "#000000", fontName: "" },
+    { fontSize: 11, bold: true, italic: false, pageBreakBefore: false, spaceBefore: 2, spaceAfter: 1, color: "#000000", fontName: "" },
   ],
   linkColor: "#0000FF",
 

@@ -129,17 +129,15 @@ export default class HwpxWriterPlugin extends Plugin {
       } else {
         await this.app.vault.createBinary(outputPath, arrayBuffer);
       }
-      // 성공 알림 + 한컴에서 열기 옵션
       new Notice(`✅ 변환 완료: ${outputPath}`);
 
-      // 한컴오피스에서 열기
-      try {
-        const { shell } = require("electron");
+      // 사이드바에 결과 버튼 표시
+      const sidebarLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_HWPX);
+      if (sidebarLeaves.length > 0) {
+        const view = sidebarLeaves[0].view as HwpxSidebarView;
         const adapter = this.app.vault.adapter as any;
         const fullPath = require("path").join(adapter.basePath, outputPath);
-        shell.openPath(fullPath);
-      } catch (e) {
-        console.log("[HWPX Writer] Could not auto-open:", e);
+        view.showExportResult(fullPath, outputPath);
       }
     } catch (error) {
       new Notice(`변환 실패: ${error}`);

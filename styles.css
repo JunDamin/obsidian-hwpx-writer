@@ -66,6 +66,45 @@
   background: var(--background-modifier-active-hover);
 }
 
+/* 내보내기 결과 */
+.hwpx-result-section {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.hwpx-result-info {
+  font-size: 11px;
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+
+.hwpx-result-path {
+  color: var(--text-accent);
+}
+
+.hwpx-result-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.hwpx-result-btn {
+  flex: 1;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.hwpx-result-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
 /* 변환 섹션 */
 .hwpx-convert-section {
   margin-bottom: 12px;
@@ -227,14 +266,30 @@
 .hwpx-heading-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+
+.hwpx-heading-spacing {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 6px;
 }
 
 .hwpx-heading-label {
   width: 24px;
   font-size: 11px;
   font-weight: 600;
+}
+
+.hwpx-color-input-sm {
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  cursor: pointer;
 }
 
 /* 템플릿 관리 */
