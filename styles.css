@@ -1,0 +1,262 @@
+/* HWPX Writer 사이드바 스타일 */
+
+.hwpx-sidebar {
+  padding: 8px;
+}
+
+/* 미리보기 */
+.hwpx-preview-section {
+  margin-bottom: 12px;
+}
+
+.hwpx-preview-canvas {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  min-height: 200px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.hwpx-preview-canvas svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.hwpx-preview-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.hwpx-nav-btn, .hwpx-refresh-btn {
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.hwpx-page-info {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 변환 섹션 */
+.hwpx-convert-section {
+  margin-bottom: 12px;
+}
+
+.hwpx-template-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.hwpx-template-select {
+  flex: 1;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.hwpx-export-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+}
+
+.hwpx-export-btn:hover {
+  opacity: 0.9;
+}
+
+/* 접이식 섹션 */
+.hwpx-collapsible {
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.hwpx-collapsible-header {
+  padding: 8px 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.hwpx-collapsible-header:hover {
+  color: var(--text-normal);
+}
+
+.hwpx-arrow {
+  font-size: 10px;
+  width: 12px;
+}
+
+.hwpx-collapsible-content {
+  padding: 4px 8px 12px;
+}
+
+/* 설정 행 */
+.hwpx-setting-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.hwpx-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 6px 0 4px;
+}
+
+/* 버튼 그룹 */
+.hwpx-btn-group {
+  display: flex;
+  gap: 2px;
+}
+
+.hwpx-toggle-btn {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.hwpx-toggle-btn.active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.hwpx-bold-btn {
+  font-weight: 800;
+  min-width: 24px;
+}
+
+/* 입력 */
+.hwpx-num-input {
+  width: 50px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.hwpx-num-input-sm {
+  width: 40px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.hwpx-text-input {
+  flex: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.hwpx-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.hwpx-color-input {
+  width: 32px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* 여백 그리드 */
+.hwpx-margin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.hwpx-margin-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+/* 헤딩 행 */
+.hwpx-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.hwpx-heading-label {
+  width: 24px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 템플릿 관리 */
+.hwpx-btn-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.hwpx-action-btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.hwpx-template-list {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.hwpx-template-item {
+  padding: 6px 8px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.hwpx-template-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.hwpx-template-item.active {
+  background: var(--background-modifier-active-hover);
+}
+
+.hwpx-badge {
+  font-size: 10px;
+  color: var(--interactive-accent);
+}

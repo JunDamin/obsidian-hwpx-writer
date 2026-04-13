@@ -1,0 +1,22 @@
+{
+  "name": "obsidian-hwpx-writer",
+  "version": "0.1.0",
+  "description": "Obsidian plugin to export Markdown as HWPX (한글) documents",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production"
+  },
+  "keywords": ["obsidian", "hwpx", "hancom", "hangul", "export"],
+  "license": "MIT",
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "builtin-modules": "^4.0.0",
+    "esbuild": "^0.21.0",
+    "obsidian": "latest",
+    "typescript": "^5.4.0"
+  }
+}
