@@ -1,12 +1,18 @@
-import { ItemView, WorkspaceLeaf, MarkdownView } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, Notice } from "obsidian";
 import type HwpxWriterPlugin from "./main";
+import { convertMarkdownToHwpx } from "./converter/MarkdownToHwpx";
 
 export const VIEW_TYPE_HWPX = "hwpx-writer-view";
 
 export class HwpxSidebarView extends ItemView {
   plugin: HwpxWriterPlugin;
   private previewEl: HTMLElement | null = null;
+  private pageInfoEl: HTMLElement | null = null;
   private debounceTimer: number | null = null;
+  private currentPage = 0;
+  private totalPages = 0;
+  private rhwpDoc: any = null;
+  private rhwpInitialized = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: HwpxWriterPlugin) {
     super(leaf);
@@ -51,9 +57,11 @@ export class HwpxSidebarView extends ItemView {
     this.previewEl.setText("미리보기 준비 중...");
 
     const previewNav = previewSection.createDiv("hwpx-preview-nav");
-    previewNav.createEl("button", { text: "◀", cls: "hwpx-nav-btn" });
-    previewNav.createEl("span", { text: "1/1 페이지", cls: "hwpx-page-info" });
-    previewNav.createEl("button", { text: "▶", cls: "hwpx-nav-btn" });
+    previewNav.createEl("button", { text: "◀", cls: "hwpx-nav-btn" })
+      .addEventListener("click", () => this.prevPage());
+    this.pageInfoEl = previewNav.createEl("span", { text: "- / -", cls: "hwpx-page-info" });
+    previewNav.createEl("button", { text: "▶", cls: "hwpx-nav-btn" })
+      .addEventListener("click", () => this.nextPage());
     previewNav.createEl("button", { text: "🔄", cls: "hwpx-refresh-btn" })
       .addEventListener("click", () => this.refreshPreview());
 
@@ -298,11 +306,104 @@ export class HwpxSidebarView extends ItemView {
 
   private async refreshPreview() {
     if (!this.previewEl) return;
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view?.file) {
+
+    // 현재 Markdown 파일 찾기
+    let mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!mdView) {
+      const leaves = this.app.workspace.getLeavesOfType("markdown");
+      if (leaves.length > 0) mdView = leaves[0].view as MarkdownView;
+    }
+    if (!mdView?.file) {
       this.previewEl.setText("Markdown 파일을 열어주세요.");
       return;
     }
-    this.previewEl.setText(`미리보기: ${view.file.basename}\n(Phase 3에서 구현 예정)`);
+
+    this.previewEl.setText("변환 중...");
+
+    try {
+      // Markdown → HWPX bytes
+      const markdown = await this.app.vault.read(mdView.file);
+      const hwpxBytes = await convertMarkdownToHwpx(markdown, this.plugin.settings);
+
+      // @rhwp/core로 렌더링
+      if (!this.rhwpInitialized) {
+        try {
+          const rhwp = await import("@rhwp/core");
+          const wasmPath = this.app.vault.adapter.getResourcePath(
+            `${this.plugin.manifest.dir}/rhwp_bg.wasm`
+          );
+          // WASM 초기화 시도
+          await rhwp.default({ module_or_path: wasmPath });
+          this.rhwpInitialized = true;
+        } catch (e) {
+          // WASM 초기화 실패 — initSync로 폴백
+          try {
+            const rhwp = await import("@rhwp/core");
+            const fs = require("fs");
+            const wasmBuffer = fs.readFileSync(
+              require("path").join(
+                (this.app.vault.adapter as any).basePath,
+                ".obsidian/plugins/obsidian-hwpx-writer/rhwp_bg.wasm"
+              )
+            );
+            rhwp.initSync({ module: wasmBuffer });
+            this.rhwpInitialized = true;
+          } catch (e2) {
+            console.error("[HWPX Writer] WASM init failed:", e2);
+            this.previewEl.setText(`미리보기 준비 실패\n(WASM 파일 필요)`);
+            return;
+          }
+        }
+      }
+
+      // HwpDocument 생성 + SVG 렌더링
+      const rhwp = await import("@rhwp/core");
+      this.rhwpDoc = new rhwp.HwpDocument(hwpxBytes);
+      this.totalPages = this.rhwpDoc.pageCount();
+      this.currentPage = 0;
+
+      this.renderCurrentPage();
+    } catch (error) {
+      console.error("[HWPX Writer] Preview error:", error);
+      this.previewEl.setText(`미리보기 실패: ${error}`);
+    }
+  }
+
+  private renderCurrentPage() {
+    if (!this.previewEl || !this.rhwpDoc) return;
+
+    try {
+      const svg = this.rhwpDoc.renderPageSvg(this.currentPage);
+      this.previewEl.empty();
+      this.previewEl.innerHTML = svg;
+
+      // SVG 크기 조정
+      const svgEl = this.previewEl.querySelector("svg");
+      if (svgEl) {
+        svgEl.style.width = "100%";
+        svgEl.style.height = "auto";
+      }
+    } catch (e) {
+      this.previewEl.setText(`페이지 렌더링 실패: ${e}`);
+    }
+
+    // 페이지 정보 업데이트
+    if (this.pageInfoEl) {
+      this.pageInfoEl.setText(`${this.currentPage + 1}/${this.totalPages} 페이지`);
+    }
+  }
+
+  private prevPage() {
+    if (this.currentPage > 0) {
+      this.currentPage--;
+      this.renderCurrentPage();
+    }
+  }
+
+  private nextPage() {
+    if (this.currentPage < this.totalPages - 1) {
+      this.currentPage++;
+      this.renderCurrentPage();
+    }
   }
 }
