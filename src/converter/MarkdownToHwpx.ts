@@ -6,6 +6,7 @@ import {
   HwpxDocument, Section, Paragraph,
   CharProperties, ParaProperties, BorderFill, BorderLine, SolidFill,
   Table, Equation, Hyperlink, Footnote,
+  Font, FontFace,
   pt, mm,
 } from "../hwpx-core/index";
 
@@ -19,6 +20,19 @@ export async function convertMarkdownToHwpx(
   setBulletChars(settings.listBulletChars || "ㅇ,-,∙,●");
 
   const doc = new HwpxDocument({ title: "", creator: "Obsidian HWPX Writer" });
+
+  // 폰트 설정 적용
+  const hangulFont = settings.fontHangul || "맑은 고딕";
+  const latinFont = settings.fontLatin || hangulFont;
+  const LANG_GROUPS = ["HANGUL", "LATIN", "HANJA", "JAPANESE", "OTHER", "SYMBOL", "USER"];
+  const customFontfaces = LANG_GROUPS.map(lang => {
+    const primaryFont = lang === "LATIN" ? latinFont : hangulFont;
+    return new FontFace(lang, [
+      new Font(0, primaryFont),
+      new Font(1, "함초롬돋움"),
+    ]);
+  });
+  doc.setFontfaces(customFontfaces);
 
   const sec = doc.addSection({
     pageWidth: getPaperWidth(settings.paperSize),

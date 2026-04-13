@@ -63,6 +63,11 @@ export class HwpxDocument {
     this._styleCounter = new IdCounter(13);
   }
 
+  /** 폰트 목록 교체 (한글/영문 폰트 커스텀용). */
+  setFontfaces(fontfaces: FontFace[]): void {
+    this._fontfaces = fontfaces;
+  }
+
   // -- Section management --
 
   addSection(init: ConstructorParameters<typeof Section>[0] = {}): Section {

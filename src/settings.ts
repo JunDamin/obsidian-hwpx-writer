@@ -32,10 +32,16 @@ export interface HwpxWriterSettings {
   marginHeader: number;
   marginFooter: number;
 
+  // 글꼴
+  fontHangul: string;      // 한글 폰트
+  fontLatin: string;       // 영문 폰트
+  headingFontHangul: string;  // 헤딩 한글 폰트 (빈 문자열이면 본문 폰트)
+  headingFontLatin: string;   // 헤딩 영문 폰트
+
   // 스타일
-  bodyFont: string;
-  bodyFontSize: number;  // pt
-  lineSpacing: number;   // %
+  bodyFont: string;        // (하위 호환용, fontHangul과 동기화)
+  bodyFontSize: number;    // pt
+  lineSpacing: number;     // %
   headingStyles: HeadingStyle[];  // H1~H6
   linkColor: string;
 
@@ -86,6 +92,11 @@ export const DEFAULT_SETTINGS: HwpxWriterSettings = {
   marginBottom: 15,
   marginHeader: 15,
   marginFooter: 15,
+
+  fontHangul: "맑은 고딕",
+  fontLatin: "맑은 고딕",
+  headingFontHangul: "",
+  headingFontLatin: "",
 
   bodyFont: "맑은 고딕",
   bodyFontSize: 10,

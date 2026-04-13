@@ -84,6 +84,10 @@ export class HwpxSidebarView extends ItemView {
     this.resultEl.style.display = "none";
 
     // ── 접이식 설정 섹션들 ──
+    this.buildCollapsibleSection(container, "글꼴", (el) => {
+      this.buildFontSettings(el);
+    });
+
     this.buildCollapsibleSection(container, "페이지 설정", (el) => {
       this.buildPageSettings(el);
     });
@@ -132,6 +136,56 @@ export class HwpxSidebarView extends ItemView {
       content.style.display = isOpen ? "none" : "block";
       arrow.setText(isOpen ? "▶" : "▼");
     });
+  }
+
+  private buildFontSettings(el: HTMLElement) {
+    const s = this.plugin.settings;
+
+    // 본문 폰트
+    el.createEl("div", { text: "본문", cls: "hwpx-label" });
+    const bodyRow = el.createDiv("hwpx-setting-row");
+    bodyRow.createEl("span", { text: "한글" });
+    const hangulInput = bodyRow.createEl("input", { cls: "hwpx-text-input", value: s.fontHangul });
+    hangulInput.addEventListener("change", async () => {
+      this.plugin.settings.fontHangul = hangulInput.value;
+      this.plugin.settings.bodyFont = hangulInput.value; // 동기화
+      await this.plugin.saveSettings();
+    });
+
+    const latinRow = el.createDiv("hwpx-setting-row");
+    latinRow.createEl("span", { text: "영문" });
+    const latinInput = latinRow.createEl("input", { cls: "hwpx-text-input", value: s.fontLatin });
+    latinInput.addEventListener("change", async () => {
+      this.plugin.settings.fontLatin = latinInput.value;
+      await this.plugin.saveSettings();
+    });
+
+    // 헤딩 폰트
+    el.createEl("div", { text: "헤딩 (비어있으면 본문 폰트 사용)", cls: "hwpx-label" });
+    const hHangulRow = el.createDiv("hwpx-setting-row");
+    hHangulRow.createEl("span", { text: "한글" });
+    const hHangulInput = hHangulRow.createEl("input", {
+      cls: "hwpx-text-input", value: s.headingFontHangul,
+      attr: { placeholder: s.fontHangul },
+    });
+    hHangulInput.addEventListener("change", async () => {
+      this.plugin.settings.headingFontHangul = hHangulInput.value;
+      await this.plugin.saveSettings();
+    });
+
+    const hLatinRow = el.createDiv("hwpx-setting-row");
+    hLatinRow.createEl("span", { text: "영문" });
+    const hLatinInput = hLatinRow.createEl("input", {
+      cls: "hwpx-text-input", value: s.headingFontLatin,
+      attr: { placeholder: s.fontLatin },
+    });
+    hLatinInput.addEventListener("change", async () => {
+      this.plugin.settings.headingFontLatin = hLatinInput.value;
+      await this.plugin.saveSettings();
+    });
+
+    // 코드 폰트 (참조)
+    el.createEl("div", { text: "코드 블록 폰트는 '코드 블록' 섹션에서 설정", cls: "hwpx-label" });
   }
 
   private buildPageSettings(el: HTMLElement) {
