@@ -116,14 +116,31 @@ export default class HwpxWriterPlugin extends Plugin {
       const outputPath = this.getOutputPath(file);
       console.log("[HWPX Writer] Output path:", outputPath);
 
-      // 이미 존재하면 삭제 후 재생성
+      // ArrayBuffer 안전 복사 (Uint8Array.buffer 호환 문제 방지)
+      const arrayBuffer = hwpxBytes.buffer.slice(
+        hwpxBytes.byteOffset,
+        hwpxBytes.byteOffset + hwpxBytes.byteLength
+      );
+
+      // 이미 존재하면 덮어쓰기, 없으면 생성
       const existing = this.app.vault.getAbstractFileByPath(outputPath);
       if (existing instanceof TFile) {
-        await this.app.vault.modifyBinary(existing, hwpxBytes.buffer as ArrayBuffer);
+        await this.app.vault.modifyBinary(existing, arrayBuffer);
       } else {
-        await this.app.vault.createBinary(outputPath, hwpxBytes.buffer as ArrayBuffer);
+        await this.app.vault.createBinary(outputPath, arrayBuffer);
       }
+      // 성공 알림 + 한컴에서 열기 옵션
       new Notice(`✅ 변환 완료: ${outputPath}`);
+
+      // 한컴오피스에서 열기
+      try {
+        const { shell } = require("electron");
+        const adapter = this.app.vault.adapter as any;
+        const fullPath = require("path").join(adapter.basePath, outputPath);
+        shell.openPath(fullPath);
+      } catch (e) {
+        console.log("[HWPX Writer] Could not auto-open:", e);
+      }
     } catch (error) {
       new Notice(`변환 실패: ${error}`);
       console.error("HWPX export error:", error);
