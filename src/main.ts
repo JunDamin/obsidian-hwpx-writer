@@ -72,22 +72,51 @@ export default class HwpxWriterPlugin extends Plugin {
   }
 
   async exportCurrentFile() {
+    // 사이드바가 활성화된 상태에서도 편집 중인 .md 파일을 찾음
+    let file: TFile | null = null;
+
+    // 방법 1: 활성 MarkdownView에서
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!activeView?.file) {
-      new Notice("변환할 Markdown 파일이 없습니다.");
+    if (activeView?.file) {
+      file = activeView.file;
+    }
+
+    // 방법 2: 모든 leaf에서 마지막 활성 markdown 파일 찾기
+    if (!file) {
+      const leaves = this.app.workspace.getLeavesOfType("markdown");
+      if (leaves.length > 0) {
+        const view = leaves[0].view as MarkdownView;
+        if (view?.file) file = view.file;
+      }
+    }
+
+    if (!file) {
+      new Notice("변환할 Markdown 파일이 없습니다. .md 파일을 열어주세요.");
       return;
     }
-    await this.exportFile(activeView.file);
+    await this.exportFile(file);
   }
 
   async exportFile(file: TFile) {
     try {
       new Notice(`변환 중: ${file.basename}...`);
+      console.log("[HWPX Writer] Converting:", file.path);
       const markdown = await this.app.vault.read(file);
+      console.log("[HWPX Writer] Markdown length:", markdown.length);
 
       const hwpxBytes = await convertMarkdownToHwpx(markdown, this.settings);
+      console.log("[HWPX Writer] HWPX bytes:", hwpxBytes.length);
+
       const outputPath = this.getOutputPath(file);
-      await this.app.vault.createBinary(outputPath, hwpxBytes.buffer as ArrayBuffer);
+      console.log("[HWPX Writer] Output path:", outputPath);
+
+      // 이미 존재하면 삭제 후 재생성
+      const existing = this.app.vault.getAbstractFileByPath(outputPath);
+      if (existing instanceof TFile) {
+        await this.app.vault.modifyBinary(existing, hwpxBytes.buffer as ArrayBuffer);
+      } else {
+        await this.app.vault.createBinary(outputPath, hwpxBytes.buffer as ArrayBuffer);
+      }
       new Notice(`✅ 변환 완료: ${outputPath}`);
     } catch (error) {
       new Notice(`변환 실패: ${error}`);

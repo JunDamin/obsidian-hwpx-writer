@@ -1,71 +1,22 @@
 /**
- * Markdown → HWPX 변환 엔진.
- *
- * remark로 Markdown을 AST로 파싱하고, AST를 순회하면서
- * hwpx-core의 Document/Section/Paragraph/Table 등을 조립한다.
+ * Markdown → HWPX 변환 엔진 (자체 파서, 외부 의존성 없음).
  */
 
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import type { Root, Content, Heading, Paragraph as MdParagraph, Text, Strong, Emphasis, Delete, Link, InlineCode, Code, Table as MdTable, TableRow, TableCell, List, ListItem, ThematicBreak, Blockquote, Image as MdImage, FootnoteDefinition, FootnoteReference, Math as MdMath, InlineMath } from "mdast";
-
 import {
-  HwpxDocument, Section, Paragraph, TextRun, Table, TableCell as HwpxTableCell,
+  HwpxDocument, Section, Paragraph,
   CharProperties, ParaProperties, BorderFill, BorderLine, SolidFill,
-  Equation, Hyperlink, Footnote,
+  Table, Equation, Hyperlink, Footnote,
   pt, mm,
 } from "../hwpx-core/index";
 
 import type { HwpxWriterSettings } from "../settings";
 
-export interface ConvertResult {
-  bytes: Uint8Array;
-  pageCount: number;
-}
-
-/**
- * Markdown 텍스트를 HWPX 바이트로 변환.
- */
 export async function convertMarkdownToHwpx(
   markdown: string,
   settings: HwpxWriterSettings,
-  resolveImage?: (src: string) => Promise<Uint8Array | null>,
 ): Promise<Uint8Array> {
-  // 1. Markdown → AST
-  const ast = parseMarkdown(markdown);
-
-  // 2. AST → HwpxDocument
-  const doc = buildHwpxDocument(ast, settings, resolveImage);
-
-  // 3. HwpxDocument → bytes
-  return doc.toBytes();
-}
-
-/**
- * Markdown 텍스트를 remark AST로 파싱.
- */
-function parseMarkdown(markdown: string): Root {
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkMath);
-
-  return processor.parse(markdown) as Root;
-}
-
-/**
- * remark AST를 HwpxDocument로 변환.
- */
-function buildHwpxDocument(
-  ast: Root,
-  settings: HwpxWriterSettings,
-  resolveImage?: (src: string) => Promise<Uint8Array | null>,
-): HwpxDocument {
   const doc = new HwpxDocument({ title: "", creator: "Obsidian HWPX Writer" });
 
-  // 페이지 설정
   const sec = doc.addSection({
     pageWidth: getPaperWidth(settings.paperSize),
     pageHeight: getPaperHeight(settings.paperSize),
@@ -81,89 +32,268 @@ function buildHwpxDocument(
   // 스타일 등록
   const styles = registerStyles(doc, settings);
 
-  // 각주 수집
-  const footnotes = collectFootnotes(ast);
+  // 줄 단위 파싱
+  const lines = markdown.split("\n");
+  let i = 0;
 
-  // 블록 처리
-  let isFirstBlock = true;
-  for (const node of ast.children) {
-    processBlock(node, doc, sec, styles, settings, footnotes, isFirstBlock);
-    isFirstBlock = false;
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // 빈 줄
+    if (line.trim() === "") {
+      i++;
+      continue;
+    }
+
+    // YAML frontmatter 스킵
+    if (i === 0 && line.trim() === "---") {
+      i++;
+      while (i < lines.length && lines[i].trim() !== "---") i++;
+      i++; // --- 닫는 줄 스킵
+      continue;
+    }
+
+    // 헤딩 (#, ##, ### ...)
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)/);
+    if (headingMatch) {
+      const level = headingMatch[1].length - 1; // 0-indexed
+      const text = headingMatch[2].trim();
+      const charPrId = styles.headingCharPrIds[level] || styles.bodyCharPrId;
+      const paraPrId = styles.headingParaPrIds[level] || 0;
+      const p = new Paragraph(paraPrId);
+      addFormattedRuns(p, text, styles);
+      // 헤딩은 헤딩 charPr 사용
+      if (p.runs.length === 0) p.addRun(text, charPrId);
+      else {
+        // runs의 charPrId를 헤딩용으로 교체 (bold+크기)
+        p.runs = [];
+        (p as any).inlineItems = [];
+        addFormattedRunsWithBase(p, text, styles, charPrId);
+      }
+      sec.addParagraph(p);
+      i++;
+      continue;
+    }
+
+    // 수평선
+    if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      sec.addParagraph("");
+      i++;
+      continue;
+    }
+
+    // 코드 블록 (```)
+    if (line.trim().startsWith("```")) {
+      i++;
+      const codeLines: string[] = [];
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // ``` 닫는 줄
+      const p = new Paragraph();
+      p.addRun(codeLines.join("\n"), styles.codeCharPrId);
+      sec.addParagraph(p);
+      continue;
+    }
+
+    // 블록 수식 ($$)
+    if (line.trim().startsWith("$$")) {
+      i++;
+      const mathLines: string[] = [];
+      while (i < lines.length && !lines[i].trim().startsWith("$$")) {
+        mathLines.push(lines[i]);
+        i++;
+      }
+      i++;
+      sec.addEquation({ latex: mathLines.join("\n") });
+      continue;
+    }
+
+    // 인용문 (>)
+    if (line.startsWith(">")) {
+      const quoteLines: string[] = [];
+      while (i < lines.length && (lines[i].startsWith(">") || lines[i].trim() === "")) {
+        if (lines[i].trim() === "" && i + 1 < lines.length && !lines[i + 1].startsWith(">")) break;
+        quoteLines.push(lines[i].replace(/^>\s?/, ""));
+        i++;
+      }
+      const indent = 2000;
+      const pp = doc.addParaProperty(new ParaProperties({ marginLeft: indent }));
+      const p = new Paragraph(pp);
+      addFormattedRuns(p, quoteLines.join(" "), styles);
+      sec.addParagraph(p);
+      continue;
+    }
+
+    // GFM 표
+    if (line.includes("|") && i + 1 < lines.length && /^\|?[\s:]*-+[\s:]*/.test(lines[i + 1])) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].includes("|")) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      buildTable(tableLines, sec, styles, doc, settings);
+      continue;
+    }
+
+    // 리스트 (- 또는 * 또는 숫자.)
+    const listMatch = line.match(/^(\s*)([-*]|\d+\.)\s+(.+)/);
+    if (listMatch) {
+      const items: { indent: number; ordered: boolean; text: string }[] = [];
+      while (i < lines.length) {
+        const m = lines[i].match(/^(\s*)([-*]|\d+\.)\s+(.+)/);
+        if (!m) break;
+        const indent = m[1].length;
+        const ordered = /\d+\./.test(m[2]);
+        items.push({ indent, ordered, text: m[3] });
+        i++;
+      }
+      let counter = 1;
+      for (const item of items) {
+        const level = Math.floor(item.indent / 2);
+        const prefix = item.ordered ? `${counter}. ` : getBulletChar(level);
+        const indentVal = 2000 * (level + 1);
+        const pp = doc.addParaProperty(new ParaProperties({
+          marginLeft: indentVal, indent: -2000,
+        }));
+        const p = new Paragraph(pp);
+        p.addRun(prefix, styles.bodyCharPrId);
+        addFormattedRuns(p, item.text, styles);
+        sec.addParagraph(p);
+        if (item.ordered) counter++;
+      }
+      continue;
+    }
+
+    // 일반 문단
+    const paraLines: string[] = [line];
+    i++;
+    while (i < lines.length && lines[i].trim() !== "" && !lines[i].match(/^#{1,6}\s/) && !lines[i].startsWith("```") && !lines[i].startsWith(">") && !lines[i].match(/^(\s*)([-*]|\d+\.)\s+/)) {
+      paraLines.push(lines[i]);
+      i++;
+    }
+    const fullText = paraLines.join(" ");
+    const p = new Paragraph();
+    addFormattedRuns(p, fullText, styles);
+    sec.addParagraph(p);
   }
 
-  return doc;
+  return doc.toBytes();
 }
 
-// ── 스타일 등록 ──
+// ── 인라인 서식 파싱 ──
 
-interface RegisteredStyles {
-  bodyCharPrId: number;
-  bodyParaPrId: number;
-  headingCharPrIds: number[];
-  headingParaPrIds: number[];
-  boldCharPrId: number;
-  italicCharPrId: number;
-  boldItalicCharPrId: number;
-  strikeCharPrId: number;
-  codeCharPrId: number;
-  linkCharPrId: number;
-  centerParaPrId: number;
-  headerBfId: number;
-  bodyBfId: number;
+function addFormattedRuns(p: Paragraph, text: string, styles: any) {
+  addFormattedRunsWithBase(p, text, styles, styles.bodyCharPrId);
 }
 
-function registerStyles(doc: HwpxDocument, settings: HwpxWriterSettings): RegisteredStyles {
-  // 본문 charPr
-  const bodyCharPrId = doc.addCharProperty(new CharProperties({
-    height: pt(settings.bodyFontSize),
-  }));
+function addFormattedRunsWithBase(p: Paragraph, text: string, styles: any, baseCharPrId: number) {
+  // 간단한 인라인 서식 파서
+  // **bold**, *italic*, ~~strike~~, `code`, [link](url)
+  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|~~(.+?)~~|`(.+?)`|\[(.+?)\]\((.+?)\))/g;
 
-  // 본문 paraPr (기본 정렬)
-  const bodyParaPrId = 0; // 기본값 사용
+  let lastIndex = 0;
+  let match;
 
-  // 헤딩 charPr/paraPr
+  while ((match = regex.exec(text)) !== null) {
+    // 매치 전 텍스트
+    if (match.index > lastIndex) {
+      p.addRun(text.slice(lastIndex, match.index), baseCharPrId);
+    }
+
+    if (match[2]) {
+      // **bold**
+      p.addRun(match[2], styles.boldCharPrId);
+    } else if (match[3]) {
+      // *italic*
+      p.addRun(match[3], styles.italicCharPrId);
+    } else if (match[4]) {
+      // ~~strike~~
+      p.addRun(match[4], styles.strikeCharPrId);
+    } else if (match[5]) {
+      // `code`
+      p.addRun(match[5], styles.codeCharPrId);
+    } else if (match[6] && match[7]) {
+      // [text](url)
+      p.addField(new Hyperlink(match[7], match[6]));
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // 나머지 텍스트
+  if (lastIndex < text.length) {
+    p.addRun(text.slice(lastIndex), baseCharPrId);
+  }
+
+  // 아무것도 없으면 빈 런
+  if (lastIndex === 0 && text.length === 0) {
+    p.addRun("", baseCharPrId);
+  }
+}
+
+// ── 표 빌더 ──
+
+function buildTable(
+  lines: string[],
+  sec: Section,
+  styles: any,
+  doc: HwpxDocument,
+  settings: HwpxWriterSettings,
+) {
+  // 구분선(---|---) 제거
+  const dataLines = lines.filter(l => !/^\|?[\s:]*-+/.test(l));
+  if (dataLines.length === 0) return;
+
+  const parseRow = (line: string): string[] =>
+    line.split("|").map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length);
+
+  const rows = dataLines.map(parseRow);
+  const rowCount = rows.length;
+  const colCount = rows[0]?.length || 1;
+
+  const tbl = sec.addTable({ rows: rowCount, cols: colCount });
+
+  // 머리행
+  if (rowCount > 0) {
+    tbl.setHeaderRow(rows[0], {
+      charPrId: styles.boldCharPrId,
+      paraPrId: styles.centerParaPrId,
+      headerBorderFillId: styles.headerBfId,
+    });
+  }
+
+  // 본문행
+  for (let r = 1; r < rowCount; r++) {
+    for (let c = 0; c < colCount; c++) {
+      const text = rows[r]?.[c] || "";
+      const cell = tbl.setCell(r, c, text, styles.bodyCharPrId);
+      cell.borderFillId = styles.bodyBfId;
+    }
+  }
+}
+
+// ── 유틸리티 ──
+
+function registerStyles(doc: HwpxDocument, settings: HwpxWriterSettings) {
+  const bodyCharPrId = doc.addCharProperty(new CharProperties({ height: pt(settings.bodyFontSize) }));
   const headingCharPrIds: number[] = [];
   const headingParaPrIds: number[] = [];
   for (let i = 0; i < 6; i++) {
     const hs = settings.headingStyles[i] || { fontSize: 10, bold: true, pageBreakBefore: false };
-    headingCharPrIds.push(doc.addCharProperty(new CharProperties({
-      height: pt(hs.fontSize),
-      bold: hs.bold,
-    })));
-    headingParaPrIds.push(doc.addParaProperty(new ParaProperties({
-      alignHorizontal: i === 0 ? "CENTER" : "JUSTIFY",
-      pageBreakBefore: hs.pageBreakBefore,
-    })));
+    headingCharPrIds.push(doc.addCharProperty(new CharProperties({ height: pt(hs.fontSize), bold: hs.bold })));
+    headingParaPrIds.push(doc.addParaProperty(new ParaProperties({ pageBreakBefore: hs.pageBreakBefore })));
   }
-
-  // 서식 charPr
-  const boldCharPrId = doc.addCharProperty(new CharProperties({
-    height: pt(settings.bodyFontSize), bold: true,
-  }));
-  const italicCharPrId = doc.addCharProperty(new CharProperties({
-    height: pt(settings.bodyFontSize), italic: true,
-  }));
-  const boldItalicCharPrId = doc.addCharProperty(new CharProperties({
-    height: pt(settings.bodyFontSize), bold: true, italic: true,
-  }));
-  const strikeCharPrId = doc.addCharProperty(new CharProperties({
-    height: pt(settings.bodyFontSize), strikeoutShape: "SOLID",
-  }));
-  const codeCharPrId = doc.addCharProperty(new CharProperties({
-    height: pt(settings.bodyFontSize),
-  }));
+  const boldCharPrId = doc.addCharProperty(new CharProperties({ height: pt(settings.bodyFontSize), bold: true }));
+  const italicCharPrId = doc.addCharProperty(new CharProperties({ height: pt(settings.bodyFontSize), italic: true }));
+  const strikeCharPrId = doc.addCharProperty(new CharProperties({ height: pt(settings.bodyFontSize), strikeoutShape: "SOLID" }));
+  const codeCharPrId = doc.addCharProperty(new CharProperties({ height: pt(settings.bodyFontSize) }));
   const linkCharPrId = doc.addCharProperty(new CharProperties({
-    height: pt(settings.bodyFontSize),
-    textColor: settings.linkColor,
-    underlineType: "BOTTOM", underlineShape: "SOLID",
-    underlineColor: settings.linkColor,
+    height: pt(settings.bodyFontSize), textColor: settings.linkColor,
+    underlineType: "BOTTOM", underlineShape: "SOLID", underlineColor: settings.linkColor,
   }));
-
-  const centerParaPrId = doc.addParaProperty(new ParaProperties({
-    alignHorizontal: "CENTER",
-  }));
-
-  // 표 BorderFill
+  const centerParaPrId = doc.addParaProperty(new ParaProperties({ alignHorizontal: "CENTER" }));
   const headerBfId = doc.addBorderFill(new BorderFill({
     fill: new SolidFill({ faceColor: settings.tableHeaderBgColor }),
     leftBorder: new BorderLine({ type: "SOLID", width: "0.12 mm" }),
@@ -177,282 +307,21 @@ function registerStyles(doc: HwpxDocument, settings: HwpxWriterSettings): Regist
     topBorder: new BorderLine({ type: "SOLID", width: "0.12 mm" }),
     bottomBorder: new BorderLine({ type: "SOLID", width: "0.12 mm" }),
   }));
-
   return {
-    bodyCharPrId, bodyParaPrId, headingCharPrIds, headingParaPrIds,
-    boldCharPrId, italicCharPrId, boldItalicCharPrId,
-    strikeCharPrId, codeCharPrId, linkCharPrId,
+    bodyCharPrId, headingCharPrIds, headingParaPrIds,
+    boldCharPrId, italicCharPrId, strikeCharPrId, codeCharPrId, linkCharPrId,
     centerParaPrId, headerBfId, bodyBfId,
   };
 }
 
-// ── 블록 핸들러 ──
-
-function processBlock(
-  node: Content,
-  doc: HwpxDocument,
-  sec: Section,
-  styles: RegisteredStyles,
-  settings: HwpxWriterSettings,
-  footnotes: Map<string, Content[]>,
-  isFirstBlock: boolean,
-) {
-  switch (node.type) {
-    case "heading":
-      handleHeading(node as Heading, sec, styles, isFirstBlock);
-      break;
-    case "paragraph":
-      handleParagraph(node as MdParagraph, sec, styles, doc, footnotes);
-      break;
-    case "table":
-      handleTable(node as MdTable, sec, styles, doc);
-      break;
-    case "list":
-      handleList(node as List, sec, styles, doc, footnotes, 0);
-      break;
-    case "code":
-      handleCodeBlock(node as Code, sec, styles);
-      break;
-    case "blockquote":
-      handleBlockquote(node as Blockquote, doc, sec, styles, settings, footnotes);
-      break;
-    case "thematicBreak":
-      sec.addParagraph("");
-      sec.addParagraph("");
-      break;
-    case "math":
-      handleMathBlock(node as MdMath, sec, doc);
-      break;
-    case "footnoteDefinition":
-      // 이미 collectFootnotes에서 처리됨
-      break;
-    default:
-      // 알 수 없는 블록은 무시
-      break;
-  }
-}
-
-function handleHeading(node: Heading, sec: Section, styles: RegisteredStyles, isFirstBlock: boolean) {
-  const level = Math.min(node.depth, 6) - 1; // 0-indexed
-  const charPrId = styles.headingCharPrIds[level] || 0;
-  const paraPrId = styles.headingParaPrIds[level] || 0;
-
-  const p = new Paragraph(paraPrId);
-  processInlines(node.children, p, styles, charPrId);
-  sec.addParagraph(p);
-}
-
-function handleParagraph(
-  node: MdParagraph,
-  sec: Section,
-  styles: RegisteredStyles,
-  doc: HwpxDocument,
-  footnotes: Map<string, Content[]>,
-) {
-  const p = new Paragraph(styles.bodyParaPrId);
-  processInlines(node.children, p, styles, styles.bodyCharPrId, doc, footnotes);
-  sec.addParagraph(p);
-}
-
-function handleTable(node: MdTable, sec: Section, styles: RegisteredStyles, doc: HwpxDocument) {
-  const rows = node.children.length;
-  const cols = node.children[0]?.children.length || 1;
-
-  const tbl = sec.addTable({ rows, cols });
-
-  // 머리행
-  if (rows > 0) {
-    const headerTexts = node.children[0].children.map((cell: TableCell) =>
-      getPlainText(cell.children)
-    );
-    tbl.setHeaderRow(headerTexts, {
-      charPrId: styles.boldCharPrId,
-      paraPrId: styles.centerParaPrId,
-      headerBorderFillId: styles.headerBfId,
-    });
-  }
-
-  // 본문행
-  for (let r = 1; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const cellNode = node.children[r]?.children[c];
-      if (cellNode) {
-        const text = getPlainText(cellNode.children);
-        const cell = tbl.setCell(r, c, text, styles.bodyCharPrId);
-        cell.borderFillId = styles.bodyBfId;
-      }
-    }
-  }
-}
-
-function handleList(
-  node: List,
-  sec: Section,
-  styles: RegisteredStyles,
-  doc: HwpxDocument,
-  footnotes: Map<string, Content[]>,
-  level: number,
-) {
-  const isOrdered = node.ordered ?? false;
-  let counter = node.start ?? 1;
-
-  for (const item of node.children) {
-    if (item.type !== "listItem") continue;
-
-    // 리스트 아이템의 첫 번째 문단
-    for (const child of item.children) {
-      if (child.type === "paragraph") {
-        const prefix = isOrdered ? `${counter}. ` : getBulletChar(level);
-        const indent = 2000 * (level + 1); // HWPUNIT
-
-        const pp = doc.addParaProperty(new ParaProperties({
-          marginLeft: indent,
-          indent: -2000,
-        }));
-
-        const p = new Paragraph(pp);
-        p.addRun(prefix, styles.bodyCharPrId);
-        processInlines((child as MdParagraph).children, p, styles, styles.bodyCharPrId, doc, footnotes);
-        sec.addParagraph(p);
-      } else if (child.type === "list") {
-        handleList(child as List, sec, styles, doc, footnotes, level + 1);
-      }
-    }
-    counter++;
-  }
-}
-
-function handleCodeBlock(node: Code, sec: Section, styles: RegisteredStyles) {
-  const p = new Paragraph();
-  p.addRun(node.value, styles.codeCharPrId);
-  sec.addParagraph(p);
-}
-
-function handleBlockquote(
-  node: Blockquote,
-  doc: HwpxDocument,
-  sec: Section,
-  styles: RegisteredStyles,
-  settings: HwpxWriterSettings,
-  footnotes: Map<string, Content[]>,
-) {
-  // 인용문은 왼쪽 들여쓰기로 처리
-  const indent = 2000; // ~7mm
-  for (const child of node.children) {
-    if (child.type === "paragraph") {
-      const pp = doc.addParaProperty(new ParaProperties({ marginLeft: indent }));
-      const p = new Paragraph(pp);
-      processInlines((child as MdParagraph).children, p, styles, styles.bodyCharPrId, doc, footnotes);
-      sec.addParagraph(p);
-    }
-  }
-}
-
-function handleMathBlock(node: MdMath, sec: Section, doc: HwpxDocument) {
-  sec.addEquation({ latex: node.value });
-}
-
-// ── 인라인 핸들러 ──
-
-function processInlines(
-  nodes: Content[],
-  p: Paragraph,
-  styles: RegisteredStyles,
-  defaultCharPrId: number,
-  doc?: HwpxDocument,
-  footnotes?: Map<string, Content[]>,
-) {
-  for (const node of nodes) {
-    switch (node.type) {
-      case "text":
-        p.addRun((node as Text).value, defaultCharPrId);
-        break;
-      case "strong":
-        processInlines((node as Strong).children, p, styles, styles.boldCharPrId, doc, footnotes);
-        break;
-      case "emphasis":
-        processInlines((node as Emphasis).children, p, styles, styles.italicCharPrId, doc, footnotes);
-        break;
-      case "delete":
-        processInlines((node as Delete).children, p, styles, styles.strikeCharPrId, doc, footnotes);
-        break;
-      case "link": {
-        const link = node as Link;
-        const text = getPlainText(link.children);
-        p.addField(new Hyperlink(link.url, text));
-        break;
-      }
-      case "inlineCode":
-        p.addRun((node as InlineCode).value, styles.codeCharPrId);
-        break;
-      case "inlineMath":
-        // 인라인 수식은 텍스트로 표시 (Phase 2에서 개선)
-        p.addRun(`$${(node as InlineMath).value}$`, styles.italicCharPrId);
-        break;
-      case "break":
-        p.addRun("\n", defaultCharPrId);
-        break;
-      case "footnoteReference": {
-        const ref = node as FootnoteReference;
-        if (footnotes) {
-          const content = footnotes.get(ref.identifier);
-          if (content) {
-            const text = getPlainText(content);
-            p.addFootnote(new Footnote(text));
-          }
-        }
-        break;
-      }
-      default:
-        // 알 수 없는 인라인은 텍스트로 출력
-        if ("value" in node) {
-          p.addRun(String((node as any).value), defaultCharPrId);
-        } else if ("children" in node) {
-          processInlines((node as any).children, p, styles, defaultCharPrId, doc, footnotes);
-        }
-        break;
-    }
-  }
-}
-
-// ── 유틸리티 ──
-
-function getPlainText(nodes: Content[]): string {
-  return nodes.map((n) => {
-    if ("value" in n) return String((n as any).value);
-    if ("children" in n) return getPlainText((n as any).children);
-    return "";
-  }).join("");
-}
-
-function collectFootnotes(ast: Root): Map<string, Content[]> {
-  const map = new Map<string, Content[]>();
-  for (const node of ast.children) {
-    if (node.type === "footnoteDefinition") {
-      const fn = node as FootnoteDefinition;
-      map.set(fn.identifier, fn.children);
-    }
-  }
-  return map;
-}
-
 function getBulletChar(level: number): string {
-  const chars = ["ㅇ ", "- ", "∙ ", "● ", "○ ", "■ ", "● "];
-  return chars[level % chars.length];
+  return ["ㅇ ", "- ", "∙ ", "● "][level % 4];
 }
 
 function getPaperWidth(size: string): number {
-  switch (size) {
-    case "B5": return 49951;
-    case "Letter": return 61200;
-    default: return 59530; // A4
-  }
+  return size === "B5" ? 49951 : size === "Letter" ? 61200 : 59530;
 }
 
 function getPaperHeight(size: string): number {
-  switch (size) {
-    case "B5": return 70866;
-    case "Letter": return 79200;
-    default: return 84190; // A4
-  }
+  return size === "B5" ? 70866 : size === "Letter" ? 79200 : 84190;
 }

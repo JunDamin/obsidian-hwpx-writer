@@ -16,11 +16,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "jszip": "^3.10.1",
-    "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0",
-    "remark-parse": "^11.0.0",
-    "unified": "^11.0.5"
+    "jszip": "^3.10.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
