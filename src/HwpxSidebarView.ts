@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, Notice } from "obsidian";
 import type HwpxWriterPlugin from "./main";
 import { convertMarkdownToHwpx } from "./converter/MarkdownToHwpx";
+import { TemplateEditorModal } from "./TemplateEditorModal";
 
 export const VIEW_TYPE_HWPX = "hwpx-writer-view";
 
@@ -596,13 +597,35 @@ export class HwpxSidebarView extends ItemView {
 
   private buildTemplateManager(el: HTMLElement) {
     const btnRow = el.createDiv("hwpx-btn-row");
-    btnRow.createEl("button", { text: "+ 추가", cls: "hwpx-action-btn" });
-    btnRow.createEl("button", { text: "📂 열기", cls: "hwpx-action-btn" });
 
-    const list = el.createDiv("hwpx-template-list");
-    const defaultItem = list.createDiv("hwpx-template-item active");
-    defaultItem.createEl("span", { text: "• 기본 양식" });
-    defaultItem.createEl("span", { text: "[활성]", cls: "hwpx-badge" });
+    // 새 템플릿 만들기 (빈 문서를 에디터에서 편집)
+    const newBtn = btnRow.createEl("button", { text: "✏️ 새 템플릿 만들기", cls: "hwpx-action-btn" });
+    newBtn.addEventListener("click", () => {
+      const modal = new TemplateEditorModal(this.app, null, "새 템플릿");
+      modal.open();
+    });
+
+    // 기존 HWPX 파일을 에디터에서 열기
+    const openBtn = btnRow.createEl("button", { text: "📂 파일 열어서 편집", cls: "hwpx-action-btn" });
+    openBtn.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".hwpx,.hwp";
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const buffer = await file.arrayBuffer();
+        const modal = new TemplateEditorModal(this.app, buffer, file.name);
+        modal.open();
+      });
+      input.click();
+    });
+
+    // 안내
+    el.createEl("div", {
+      text: "💡 에디터에서 플레이스홀더({{H1}}, {{BODY}} 등)를 포함하면 스타일이 자동 추출됩니다.",
+      cls: "hwpx-label",
+    });
   }
 
   private buildPresetManager(el: HTMLElement) {
