@@ -81,6 +81,69 @@
   margin-bottom: 8px;
 }
 
+/* 프리셋 관리 목록 */
+.hwpx-preset-list {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.hwpx-preset-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hwpx-preset-item:last-child {
+  border-bottom: none;
+}
+
+.hwpx-preset-item.active {
+  background: var(--background-modifier-active-hover);
+}
+
+.hwpx-preset-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.hwpx-preset-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hwpx-preset-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.hwpx-preset-action-btn {
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  min-width: 20px;
+  text-align: center;
+}
+
+.hwpx-preset-action-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+.hwpx-preset-action-btn.hwpx-danger:hover {
+  background: #ff4444;
+  color: white;
+}
+
 /* 내보내기 결과 */
 .hwpx-result-section {
   margin-top: 8px;
