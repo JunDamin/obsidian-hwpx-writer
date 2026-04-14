@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf, MarkdownView, Notice } from "obsidian";
 import type HwpxWriterPlugin from "./main";
 import { convertMarkdownToHwpx } from "./converter/MarkdownToHwpx";
 import { TemplateEditorModal } from "./TemplateEditorModal";
+import { detectEnvironment, canUsePreview, openInHancom, EnvironmentInfo } from "./environment";
 
 export const VIEW_TYPE_HWPX = "hwpx-writer-view";
 
@@ -15,6 +16,8 @@ export class HwpxSidebarView extends ItemView {
   private totalPages = 0;
   private rhwpDoc: any = null;
   private rhwpInitialized = false;
+  private env: EnvironmentInfo | null = null;
+  private lastHwpxBytes: Uint8Array | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: HwpxWriterPlugin) {
     super(leaf);
@@ -38,6 +41,10 @@ export class HwpxSidebarView extends ItemView {
     container.empty();
     container.addClass("hwpx-sidebar");
 
+    // 환경 감지 후 UI 빌드
+    this.env = await detectEnvironment(this.app, this.plugin.manifest.dir || "");
+    console.log("[HWPX Writer] Environment:", this.env);
+
     this.buildUI(container);
   }
 
@@ -46,25 +53,62 @@ export class HwpxSidebarView extends ItemView {
   }
 
   private buildUI(container: HTMLElement) {
-    // ── 미리보기 영역 ──
+    // ── 미리보기 영역 (환경에 따라 다르게) ──
     const previewSection = container.createDiv("hwpx-preview-section");
     this.previewEl = previewSection.createDiv("hwpx-preview-canvas");
-    this.previewEl.setText("미리보기 준비 중...");
 
-    const previewNav = previewSection.createDiv("hwpx-preview-nav");
-    previewNav.createEl("button", { text: "◀", cls: "hwpx-nav-btn" })
-      .addEventListener("click", () => this.prevPage());
-    this.pageInfoEl = previewNav.createEl("span", { text: "- / -", cls: "hwpx-page-info" });
-    previewNav.createEl("button", { text: "▶", cls: "hwpx-nav-btn" })
-      .addEventListener("click", () => this.nextPage());
+    const env = this.env;
+    const previewEnabled = this.plugin.settings.showPreview && env && canUsePreview(env);
 
-    // 미리보기 생성 버튼 (수동)
+    if (!previewEnabled) {
+      // 미리보기 비활성화 — 환경 정보 + 대체 버튼 표시
+      this.renderPreviewDisabled();
+    } else {
+      this.previewEl.setText("미리보기 준비 중... (🔄 버튼을 눌러 생성)");
+    }
+
+    // 페이지 네비게이션 (미리보기 활성 시에만)
+    if (previewEnabled) {
+      const previewNav = previewSection.createDiv("hwpx-preview-nav");
+      previewNav.createEl("button", { text: "◀", cls: "hwpx-nav-btn" })
+        .addEventListener("click", () => this.prevPage());
+      this.pageInfoEl = previewNav.createEl("span", { text: "- / -", cls: "hwpx-page-info" });
+      previewNav.createEl("button", { text: "▶", cls: "hwpx-nav-btn" })
+        .addEventListener("click", () => this.nextPage());
+    }
+
+    // 미리보기/대체 버튼 행
     const previewBtnRow = previewSection.createDiv("hwpx-preview-btn-row");
-    const previewBtn = previewBtnRow.createEl("button", {
-      text: "🔄 미리보기 생성",
-      cls: "hwpx-preview-btn",
-    });
-    previewBtn.addEventListener("click", () => this.refreshPreview());
+    if (previewEnabled) {
+      const previewBtn = previewBtnRow.createEl("button", {
+        text: "🔄 미리보기 생성",
+        cls: "hwpx-preview-btn",
+      });
+      previewBtn.addEventListener("click", () => this.refreshPreview());
+    }
+
+    // 환경별 대체 버튼: 한컴오피스가 있으면 "한컴에서 미리보기" 제공
+    if (env?.electronAvailable) {
+      const hancomBtn = previewBtnRow.createEl("button", {
+        text: env.hancomInstalled ? "🖨️ 한컴에서 미리보기" : "📄 외부 뷰어로 열기",
+        cls: "hwpx-preview-btn",
+      });
+      hancomBtn.addEventListener("click", () => this.previewInHancom());
+    }
+
+    // 미리보기가 꺼진 경우 켜기 버튼 제공
+    if (!previewEnabled && env?.wasmAvailable) {
+      const enableBtn = previewBtnRow.createEl("button", {
+        text: "🔄 미리보기 다시 켜기",
+        cls: "hwpx-preview-btn",
+      });
+      enableBtn.addEventListener("click", async () => {
+        this.plugin.settings.showPreview = true;
+        await this.plugin.saveSettings();
+        if (this.env) this.env.renderFailCount = 0;
+        this.rebuildUI();
+      });
+    }
 
     // ── 변환 버튼 ──
     const convertSection = container.createDiv("hwpx-convert-section");
@@ -823,6 +867,70 @@ export class HwpxSidebarView extends ItemView {
     });
   }
 
+  /** UI 전체 재빌드 */
+  private rebuildUI() {
+    const container = this.containerEl.children[1] as HTMLElement;
+    container.empty();
+    container.addClass("hwpx-sidebar");
+    this.buildUI(container);
+  }
+
+  /** 미리보기 비활성 상태 — 환경에 맞는 안내 + 버튼 */
+  private renderPreviewDisabled() {
+    if (!this.previewEl) return;
+    this.previewEl.empty();
+    const box = this.previewEl.createDiv("hwpx-editor-fallback");
+
+    const env = this.env;
+    if (!env?.wasmAvailable) {
+      box.createEl("h4", { text: "🔌 미리보기 불가" });
+      box.createEl("p", { text: "rhwp_bg.wasm 파일이 플러그인 폴더에 없습니다." });
+    } else if (env?.renderFailCount >= 3) {
+      box.createEl("h4", { text: "⚠️ 렌더링이 반복 실패했습니다" });
+      box.createEl("p", { text: "한컴오피스에서 직접 확인해 주세요." });
+    } else {
+      box.createEl("h4", { text: "💡 미리보기가 꺼져 있습니다" });
+      box.createEl("p", { text: "환경 진단 결과 또는 설정에 따라 꺼진 상태입니다." });
+    }
+
+    // 환경 정보 요약
+    if (env) {
+      const detail = box.createEl("p");
+      detail.style.fontSize = "10px";
+      detail.style.color = "var(--text-muted)";
+      const parts = [
+        `플랫폼: ${env.platform}`,
+        `WASM: ${env.wasmAvailable ? "있음" : "없음"}`,
+        `한컴: ${env.hancomInstalled ? "설치됨" : "미확인"}`,
+        `온라인: ${env.online ? "O" : "X"}`,
+      ];
+      detail.setText(parts.join(" · "));
+    }
+  }
+
+  /** HWPX로 변환 후 한컴오피스(혹은 연결된 뷰어)로 미리보기 */
+  private async previewInHancom() {
+    if (!this.env?.electronAvailable) {
+      new Notice("이 환경에서는 외부 뷰어로 열 수 없습니다.");
+      return;
+    }
+    const file = this.plugin.findMarkdownFile();
+    if (!file) {
+      new Notice("Markdown 파일을 열어주세요.");
+      return;
+    }
+    try {
+      new Notice("변환 중...");
+      const markdown = await this.app.vault.read(file);
+      const hwpxBytes = await convertMarkdownToHwpx(markdown, this.plugin.settings);
+      this.lastHwpxBytes = hwpxBytes;
+      const tmp = await openInHancom(hwpxBytes, file.basename);
+      new Notice(`📄 열기 요청: ${tmp}`);
+    } catch (e) {
+      new Notice(`외부 뷰어 열기 실패: ${e}`);
+    }
+  }
+
   private async refreshPreview() {
     if (!this.previewEl) return;
 
@@ -839,6 +947,7 @@ export class HwpxSidebarView extends ItemView {
       // Markdown → HWPX bytes
       const markdown = await this.app.vault.read(file);
       const hwpxBytes = await convertMarkdownToHwpx(markdown, this.plugin.settings);
+      this.lastHwpxBytes = hwpxBytes;
 
       // @rhwp/core로 렌더링
       if (!this.rhwpInitialized) {
@@ -865,10 +974,12 @@ export class HwpxSidebarView extends ItemView {
             this.rhwpInitialized = true;
           } catch (e2) {
             console.error("[HWPX Writer] WASM init failed:", e2);
-            this.previewEl.setText(`미리보기 준비 실패\n(WASM 파일 필요)`);
+            if (this.env) this.env.wasmInitOk = false;
+            this.showPreviewFallback("WASM 초기화 실패", String(e2));
             return;
           }
         }
+        if (this.env && this.env.wasmInitOk === null) this.env.wasmInitOk = true;
       }
 
       // HwpDocument 생성 + SVG 렌더링
@@ -880,8 +991,60 @@ export class HwpxSidebarView extends ItemView {
       this.renderCurrentPage();
     } catch (error) {
       console.error("[HWPX Writer] Preview error:", error);
-      this.previewEl.setText(`미리보기 실패: ${error}`);
+      this.showPreviewFallback("미리보기 실패", String(error));
     }
+  }
+
+  /**
+   * 미리보기 실패 시 환경별 폴백 UI 표시.
+   * 한컴 열기 / 내보내기 / 미리보기 끄기 버튼 제공.
+   */
+  private showPreviewFallback(title: string, detail: string) {
+    if (!this.previewEl) return;
+    this.previewEl.empty();
+    const box = this.previewEl.createDiv("hwpx-editor-fallback");
+    box.createEl("h4", { text: `⚠️ ${title}` });
+    const msg = box.createEl("p", { text: detail });
+    msg.style.fontSize = "10px";
+    msg.style.color = "var(--text-muted)";
+    msg.style.wordBreak = "break-all";
+
+    const btnRow = box.createDiv("hwpx-result-btns");
+
+    // 한컴오피스에서 열기 (Electron 가능 시)
+    if (this.env?.electronAvailable) {
+      const openBtn = btnRow.createEl("button", {
+        text: this.env.hancomInstalled ? "🖨️ 한컴에서 열기" : "📄 외부 뷰어로 열기",
+        cls: "hwpx-result-btn",
+      });
+      openBtn.addEventListener("click", async () => {
+        try {
+          if (!this.lastHwpxBytes) {
+            const file = this.plugin.findMarkdownFile();
+            if (!file) { new Notice("Markdown 파일을 열어주세요."); return; }
+            const md = await this.app.vault.read(file);
+            this.lastHwpxBytes = await convertMarkdownToHwpx(md, this.plugin.settings);
+          }
+          const file = this.plugin.findMarkdownFile();
+          await openInHancom(this.lastHwpxBytes, file?.basename || "preview");
+        } catch (e) {
+          new Notice(`열기 실패: ${e}`);
+        }
+      });
+    }
+
+    // 다시 시도
+    const retryBtn = btnRow.createEl("button", { text: "🔄 다시 시도", cls: "hwpx-result-btn" });
+    retryBtn.addEventListener("click", () => this.refreshPreview());
+
+    // 미리보기 끄기
+    const disableBtn = btnRow.createEl("button", { text: "🚫 미리보기 끄기", cls: "hwpx-result-btn" });
+    disableBtn.addEventListener("click", async () => {
+      this.plugin.settings.showPreview = false;
+      await this.plugin.saveSettings();
+      this.rebuildUI();
+      new Notice("미리보기를 껐습니다. 설정에서 다시 켤 수 있습니다.");
+    });
   }
 
   private renderCurrentPage() {
@@ -898,8 +1061,13 @@ export class HwpxSidebarView extends ItemView {
         svgEl.style.width = "100%";
         svgEl.style.height = "auto";
       }
+
+      // 성공하면 실패 카운트 리셋
+      if (this.env) this.env.renderFailCount = 0;
     } catch (e) {
-      this.previewEl.setText(`페이지 렌더링 실패: ${e}`);
+      console.error("[HWPX Writer] Render page failed:", e);
+      if (this.env) this.env.renderFailCount++;
+      this.showPreviewFallback(`페이지 ${this.currentPage + 1} 렌더링 실패`, String(e));
     }
 
     // 페이지 정보 업데이트
