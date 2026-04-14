@@ -2,6 +2,7 @@ import { Plugin, MarkdownView, TFile, Notice } from "obsidian";
 import { HwpxSidebarView, VIEW_TYPE_HWPX } from "./HwpxSidebarView";
 import { HwpxWriterSettings, DEFAULT_SETTINGS, HwpxSettingTab } from "./settings";
 import { convertMarkdownToHwpx } from "./converter/MarkdownToHwpx";
+import { parseFrontmatter, applyFrontmatterOverrides } from "./frontmatter";
 
 export default class HwpxWriterPlugin extends Plugin {
   settings: HwpxWriterSettings = DEFAULT_SETTINGS;
@@ -110,10 +111,18 @@ export default class HwpxWriterPlugin extends Plugin {
       const markdown = await this.app.vault.read(file);
       console.log("[HWPX Writer] Markdown length:", markdown.length);
 
-      const hwpxBytes = await convertMarkdownToHwpx(markdown, this.settings);
+      // YAML frontmatter로 설정 오버라이드
+      const { frontmatter } = parseFrontmatter(markdown);
+      const { settings: effectiveSettings, appliedKeys } =
+        applyFrontmatterOverrides(this.settings, frontmatter);
+      if (appliedKeys.length > 0) {
+        console.log("[HWPX Writer] Frontmatter overrides:", appliedKeys);
+      }
+
+      const hwpxBytes = await convertMarkdownToHwpx(markdown, effectiveSettings);
       console.log("[HWPX Writer] HWPX bytes:", hwpxBytes.length);
 
-      const outputPath = this.getOutputPath(file);
+      const outputPath = this.getOutputPath(file, effectiveSettings);
       console.log("[HWPX Writer] Output path:", outputPath);
 
       // ArrayBuffer 안전 복사 (Uint8Array.buffer 호환 문제 방지)
@@ -145,8 +154,8 @@ export default class HwpxWriterPlugin extends Plugin {
     }
   }
 
-  private getOutputPath(file: TFile): string {
-    const folder = this.settings.outputFolder || file.parent?.path || "";
+  private getOutputPath(file: TFile, settings: HwpxWriterSettings = this.settings): string {
+    const folder = settings.outputFolder || file.parent?.path || "";
     const name = `${file.basename}.hwpx`;
     return folder ? `${folder}/${name}` : name;
   }

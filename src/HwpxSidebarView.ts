@@ -3,6 +3,7 @@ import type HwpxWriterPlugin from "./main";
 import { convertMarkdownToHwpx } from "./converter/MarkdownToHwpx";
 import { TemplateEditorModal } from "./TemplateEditorModal";
 import { detectEnvironment, canUsePreview, openInHancom, EnvironmentInfo } from "./environment";
+import { parseFrontmatter, applyFrontmatterOverrides } from "./frontmatter";
 
 export const VIEW_TYPE_HWPX = "hwpx-writer-view";
 
@@ -922,7 +923,10 @@ export class HwpxSidebarView extends ItemView {
     try {
       new Notice("변환 중...");
       const markdown = await this.app.vault.read(file);
-      const hwpxBytes = await convertMarkdownToHwpx(markdown, this.plugin.settings);
+      const { frontmatter } = parseFrontmatter(markdown);
+      const { settings, appliedKeys } = applyFrontmatterOverrides(this.plugin.settings, frontmatter);
+      if (appliedKeys.length > 0) console.log("[HWPX Writer] Frontmatter:", appliedKeys);
+      const hwpxBytes = await convertMarkdownToHwpx(markdown, settings);
       this.lastHwpxBytes = hwpxBytes;
       const tmp = await openInHancom(hwpxBytes, file.basename);
       new Notice(`📄 열기 요청: ${tmp}`);
@@ -944,9 +948,12 @@ export class HwpxSidebarView extends ItemView {
     this.previewEl.setText("변환 중...");
 
     try {
-      // Markdown → HWPX bytes
+      // Markdown → HWPX bytes (frontmatter 오버라이드 적용)
       const markdown = await this.app.vault.read(file);
-      const hwpxBytes = await convertMarkdownToHwpx(markdown, this.plugin.settings);
+      const { frontmatter } = parseFrontmatter(markdown);
+      const { settings, appliedKeys } = applyFrontmatterOverrides(this.plugin.settings, frontmatter);
+      if (appliedKeys.length > 0) console.log("[HWPX Writer] Frontmatter:", appliedKeys);
+      const hwpxBytes = await convertMarkdownToHwpx(markdown, settings);
       this.lastHwpxBytes = hwpxBytes;
 
       // @rhwp/core로 렌더링
@@ -1023,7 +1030,9 @@ export class HwpxSidebarView extends ItemView {
             const file = this.plugin.findMarkdownFile();
             if (!file) { new Notice("Markdown 파일을 열어주세요."); return; }
             const md = await this.app.vault.read(file);
-            this.lastHwpxBytes = await convertMarkdownToHwpx(md, this.plugin.settings);
+            const { frontmatter } = parseFrontmatter(md);
+            const { settings } = applyFrontmatterOverrides(this.plugin.settings, frontmatter);
+            this.lastHwpxBytes = await convertMarkdownToHwpx(md, settings);
           }
           const file = this.plugin.findMarkdownFile();
           await openInHancom(this.lastHwpxBytes, file?.basename || "preview");
