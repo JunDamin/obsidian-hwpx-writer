@@ -66,6 +66,21 @@
   background: var(--background-modifier-active-hover);
 }
 
+/* 프리셋 */
+.hwpx-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.hwpx-preset-btns {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
 /* 내보내기 결과 */
 .hwpx-result-section {
   margin-top: 8px;

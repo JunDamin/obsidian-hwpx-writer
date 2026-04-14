@@ -68,6 +68,85 @@ export class HwpxSidebarView extends ItemView {
     // ── 변환 버튼 ──
     const convertSection = container.createDiv("hwpx-convert-section");
 
+    // 프리셋 선택
+    const presetRow = convertSection.createDiv("hwpx-preset-row");
+    presetRow.createEl("span", { text: "프리셋:" });
+    const presetSelect = presetRow.createEl("select", { cls: "hwpx-template-select" });
+    this.refreshPresetList(presetSelect);
+    presetSelect.addEventListener("change", async () => {
+      const name = (presetSelect as HTMLSelectElement).value;
+      if (name && name !== "__custom__") {
+        await this.applyPreset(name);
+      }
+    });
+
+    // 프리셋 저장/삭제 버튼
+    const presetBtnRow = convertSection.createDiv("hwpx-preset-btns");
+    const savePresetBtn = presetBtnRow.createEl("button", { text: "💾 현재 설정 저장", cls: "hwpx-action-btn" });
+    savePresetBtn.addEventListener("click", async () => {
+      const name = prompt("프리셋 이름을 입력하세요:");
+      if (!name) return;
+      // 현재 설정을 프리셋으로 저장 (presets, activePreset, templates 제외)
+      const { presets, activePreset, templates, ...settingsToSave } = this.plugin.settings;
+      this.plugin.settings.presets[name] = { ...settingsToSave };
+      this.plugin.settings.activePreset = name;
+      await this.plugin.saveSettings();
+      this.refreshPresetList(presetSelect);
+      (presetSelect as HTMLSelectElement).value = name;
+      new Notice(`✅ 프리셋 "${name}" 저장됨`);
+    });
+    const exportPresetBtn = presetBtnRow.createEl("button", { text: "📤", cls: "hwpx-action-btn", attr: { title: "프리셋 내보내기 (JSON)" } });
+    exportPresetBtn.addEventListener("click", async () => {
+      const name = (presetSelect as HTMLSelectElement).value;
+      if (!name || name === "__custom__") { new Notice("프리셋을 선택하세요."); return; }
+      const preset = this.plugin.settings.presets[name];
+      if (!preset) return;
+      const json = JSON.stringify({ name, settings: preset }, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `hwpx-preset-${name}.json`; a.click();
+      URL.revokeObjectURL(url);
+      new Notice(`📤 프리셋 "${name}" 내보내기 완료`);
+    });
+
+    const importPresetBtn = presetBtnRow.createEl("button", { text: "📥", cls: "hwpx-action-btn", attr: { title: "프리셋 불러오기 (JSON)" } });
+    importPresetBtn.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "file"; input.accept = ".json";
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const text = await file.text();
+        try {
+          const data = JSON.parse(text);
+          const name = data.name || file.name.replace(/\.json$/, "");
+          this.plugin.settings.presets[name] = data.settings || data;
+          await this.plugin.saveSettings();
+          this.refreshPresetList(presetSelect);
+          new Notice(`📥 프리셋 "${name}" 불러오기 완료`);
+        } catch (e) {
+          new Notice("❌ 잘못된 프리셋 파일");
+        }
+      });
+      input.click();
+    });
+
+    const deletePresetBtn = presetBtnRow.createEl("button", { text: "🗑", cls: "hwpx-action-btn", attr: { title: "선택된 프리셋 삭제" } });
+    deletePresetBtn.addEventListener("click", async () => {
+      const name = (presetSelect as HTMLSelectElement).value;
+      if (!name || name === "__custom__" || name === "기본") {
+        new Notice("기본 프리셋은 삭제할 수 없습니다.");
+        return;
+      }
+      delete this.plugin.settings.presets[name];
+      this.plugin.settings.activePreset = "기본";
+      await this.plugin.saveSettings();
+      this.refreshPresetList(presetSelect);
+      new Notice(`🗑 프리셋 "${name}" 삭제됨`);
+    });
+
+    // 템플릿 선택 (HWPX 파일)
     const templateRow = convertSection.createDiv("hwpx-template-row");
     templateRow.createEl("span", { text: "템플릿:" });
     const templateSelect = templateRow.createEl("select", { cls: "hwpx-template-select" });
@@ -522,6 +601,41 @@ export class HwpxSidebarView extends ItemView {
     defaultItem.createEl("span", { text: "[활성]", cls: "hwpx-badge" });
   }
 
+
+  /** 프리셋 목록 갱신 */
+  private refreshPresetList(selectEl: HTMLElement) {
+    selectEl.empty();
+    const presets = this.plugin.settings.presets || {};
+    selectEl.createEl("option", { text: "커스텀", value: "__custom__" });
+    for (const name of Object.keys(presets)) {
+      const opt = selectEl.createEl("option", { text: name, value: name });
+      if (name === this.plugin.settings.activePreset) {
+        (opt as HTMLOptionElement).selected = true;
+      }
+    }
+  }
+
+  /** 프리셋 적용 */
+  private async applyPreset(name: string) {
+    const preset = this.plugin.settings.presets[name];
+    if (!preset) return;
+
+    // 프리셋 값을 현재 설정에 덮어쓰기 (presets/activePreset/templates 제외)
+    const { presets, activePreset, templates, ...defaults } = { ...this.plugin.settings };
+    Object.assign(this.plugin.settings, defaults, preset);
+    this.plugin.settings.presets = presets;
+    this.plugin.settings.templates = templates;
+    this.plugin.settings.activePreset = name;
+    await this.plugin.saveSettings();
+
+    // UI 갱신 (사이드바 재빌드)
+    const container = this.containerEl.children[1] as HTMLElement;
+    container.empty();
+    container.addClass("hwpx-sidebar");
+    this.buildUI(container);
+
+    new Notice(`✅ 프리셋 "${name}" 적용됨`);
+  }
 
   /** 내보내기 결과 버튼 표시 */
   showExportResult(fullPath: string, vaultPath: string) {

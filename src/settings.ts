@@ -76,6 +76,10 @@ export interface HwpxWriterSettings {
 
   // 템플릿
   templates: string[];  // 템플릿 파일명 목록
+
+  // 프리셋
+  presets: { [name: string]: Partial<HwpxWriterSettings> };
+  activePreset: string;  // 현재 활성 프리셋 이름 (빈 문자열이면 커스텀)
 }
 
 export const DEFAULT_SETTINGS: HwpxWriterSettings = {
@@ -137,6 +141,53 @@ export const DEFAULT_SETTINGS: HwpxWriterSettings = {
   codeFontSize: 9,
 
   templates: [],
+
+  presets: {
+    "기본": {},  // 기본값 그대로
+    "공문 양식": {
+      fontHangul: "함초롬바탕", fontLatin: "함초롬바탕",
+      bodyFontSize: 10, lineSpacing: 160,
+      marginLeft: 20, marginRight: 15, marginTop: 15, marginBottom: 15,
+      headingStyles: [
+        { fontSize: 16, bold: true, italic: false, pageBreakBefore: true, blankLinesBefore: 0, blankLinesAfter: 1, blankLineHeight: 0, spaceBefore: 0, spaceAfter: 5, color: "#000000", fontName: "" },
+        { fontSize: 14, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 1, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 8, spaceAfter: 4, color: "#000000", fontName: "" },
+        { fontSize: 13, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 1, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 6, spaceAfter: 3, color: "#000000", fontName: "" },
+        { fontSize: 12, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 4, spaceAfter: 2, color: "#000000", fontName: "" },
+        { fontSize: 11, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 3, spaceAfter: 2, color: "#000000", fontName: "" },
+        { fontSize: 10, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 2, spaceAfter: 1, color: "#000000", fontName: "" },
+      ],
+      tableHeaderBgColor: "#E8E8E8",
+    },
+    "학술 논문": {
+      fontHangul: "맑은 고딕", fontLatin: "Times New Roman",
+      bodyFontSize: 11, lineSpacing: 200,
+      marginLeft: 25, marginRight: 25, marginTop: 25, marginBottom: 25,
+      bodyIndent: 10, bodyAlign: "JUSTIFY",
+      headingStyles: [
+        { fontSize: 16, bold: true, italic: false, pageBreakBefore: true, blankLinesBefore: 0, blankLinesAfter: 1, blankLineHeight: 0, spaceBefore: 0, spaceAfter: 8, color: "#000000", fontName: "" },
+        { fontSize: 14, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 2, blankLinesAfter: 1, blankLineHeight: 6, spaceBefore: 10, spaceAfter: 5, color: "#000000", fontName: "" },
+        { fontSize: 12, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 1, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 8, spaceAfter: 4, color: "#000000", fontName: "" },
+        { fontSize: 11, bold: true, italic: true, pageBreakBefore: false, blankLinesBefore: 1, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 6, spaceAfter: 3, color: "#000000", fontName: "" },
+        { fontSize: 11, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 4, spaceAfter: 2, color: "#000000", fontName: "" },
+        { fontSize: 10, bold: false, italic: true, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 3, spaceAfter: 2, color: "#000000", fontName: "" },
+      ],
+    },
+    "프레젠테이션": {
+      fontHangul: "맑은 고딕", fontLatin: "맑은 고딕",
+      bodyFontSize: 12, lineSpacing: 180,
+      paperSize: "A4" as const, landscape: true,
+      marginLeft: 25, marginRight: 25, marginTop: 20, marginBottom: 20,
+      headingStyles: [
+        { fontSize: 28, bold: true, italic: false, pageBreakBefore: true, blankLinesBefore: 0, blankLinesAfter: 2, blankLineHeight: 10, spaceBefore: 0, spaceAfter: 10, color: "#1A237E", fontName: "" },
+        { fontSize: 22, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 1, blankLinesAfter: 1, blankLineHeight: 5, spaceBefore: 10, spaceAfter: 5, color: "#283593", fontName: "" },
+        { fontSize: 18, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 1, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 8, spaceAfter: 4, color: "#303F9F", fontName: "" },
+        { fontSize: 16, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 6, spaceAfter: 3, color: "#3949AB", fontName: "" },
+        { fontSize: 14, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 4, spaceAfter: 2, color: "#000000", fontName: "" },
+        { fontSize: 12, bold: true, italic: false, pageBreakBefore: false, blankLinesBefore: 0, blankLinesAfter: 0, blankLineHeight: 0, spaceBefore: 3, spaceAfter: 2, color: "#000000", fontName: "" },
+      ],
+    },
+  },
+  activePreset: "기본",
 };
 
 export class HwpxSettingTab extends PluginSettingTab {
