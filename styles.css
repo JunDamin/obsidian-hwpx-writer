@@ -413,7 +413,7 @@
   font-size: 11px;
 }
 
-/* 헤딩 행 */
+/* 헤딩 행 (레거시) */
 .hwpx-heading-row {
   display: flex;
   align-items: center;
@@ -432,6 +432,70 @@
   width: 24px;
   font-size: 11px;
   font-weight: 600;
+}
+
+/* 헤딩 탭 전환 UI (H1~H6 탭 + 미리보기) */
+.hwpx-heading-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.hwpx-heading-tab {
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-muted);
+}
+
+.hwpx-heading-tab:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.hwpx-heading-tab.active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.hwpx-heading-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.hwpx-heading-preview {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 10px 8px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.hwpx-heading-preview-text {
+  width: 100%;
+  line-height: 1.2;
+  /* font-size / weight / style / color는 JS에서 동적으로 설정 */
+}
+
+.hwpx-heading-field-label {
+  min-width: 50px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .hwpx-select-sm {
