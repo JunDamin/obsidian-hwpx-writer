@@ -131,9 +131,14 @@ export default class HwpxWriterPlugin extends Plugin {
         hwpxBytes.byteOffset + hwpxBytes.byteLength
       );
 
-      // 이미 존재하면 덮어쓰기, 없으면 생성
+      // 이미 존재하면 확인 후 덮어쓰기, 없으면 생성
       const existing = this.app.vault.getAbstractFileByPath(outputPath);
       if (existing instanceof TFile) {
+        const overwrite = await this.confirmOverwrite(outputPath);
+        if (!overwrite) {
+          new Notice("내보내기 취소됨");
+          return;
+        }
         await this.app.vault.modifyBinary(existing, arrayBuffer);
       } else {
         await this.app.vault.createBinary(outputPath, arrayBuffer);
@@ -152,6 +157,27 @@ export default class HwpxWriterPlugin extends Plugin {
       new Notice(`변환 실패: ${error}`);
       console.error("HWPX export error:", error);
     }
+  }
+
+  /** 파일 덮어쓰기 확인 다이얼로그 */
+  private confirmOverwrite(path: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const modal = new (class extends (require("obsidian").Modal) {
+        onOpen() {
+          const { contentEl } = this;
+          contentEl.createEl("h3", { text: "파일이 이미 존재합니다" });
+          contentEl.createEl("p", { text: `${path}` });
+          contentEl.createEl("p", { text: "덮어쓰시겠습니까?" });
+          const btnRow = contentEl.createDiv({ cls: "hwpx-result-btns" });
+          const yesBtn = btnRow.createEl("button", { text: "덮어쓰기", cls: "hwpx-editor-save-btn" });
+          yesBtn.addEventListener("click", () => { this.close(); resolve(true); });
+          const noBtn = btnRow.createEl("button", { text: "취소", cls: "hwpx-editor-close-btn" });
+          noBtn.addEventListener("click", () => { this.close(); resolve(false); });
+        }
+        onClose() { resolve(false); }
+      })(this.app);
+      modal.open();
+    });
   }
 
   private getOutputPath(file: TFile, settings: HwpxWriterSettings = this.settings): string {

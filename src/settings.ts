@@ -15,6 +15,12 @@ export interface HeadingStyle {
   fontName: string;          // 빈 문자열이면 본문 폰트 사용
 }
 
+export interface ListLevelStyle {
+  bulletChar: string;    // 글머리표 문자 (예: "ㅇ", "-", "∙", "●")
+  fontSize: number;      // pt (0이면 본문 크기 사용)
+  fontName: string;      // 빈 문자열이면 본문 폰트 사용
+}
+
 export interface HwpxWriterSettings {
   // 기본
   outputFolder: string;
@@ -65,10 +71,11 @@ export interface HwpxWriterSettings {
   bodyAlign: string;
 
   // 리스트
-  listBulletChars: string;      // 레벨별 글머리표 (쉼표 구분)
+  listBulletChars: string;      // 레벨별 글머리표 (쉼표 구분) — 하위호환용
   listIndentPerLevel: number;   // mm (레벨당 들여쓰기)
-  listFontSize: number;         // pt
+  listFontSize: number;         // pt — 하위호환용
   listLineSpacing: number;      // %
+  listLevelStyles: ListLevelStyle[];  // L1~L4 레벨별 스타일
 
   // 코드 블록
   codeFontName: string;
@@ -136,6 +143,12 @@ export const DEFAULT_SETTINGS: HwpxWriterSettings = {
   listIndentPerLevel: 7,
   listFontSize: 10,
   listLineSpacing: 160,
+  listLevelStyles: [
+    { bulletChar: "ㅇ", fontSize: 10, fontName: "" },
+    { bulletChar: "-",  fontSize: 10, fontName: "" },
+    { bulletChar: "∙",  fontSize: 10, fontName: "" },
+    { bulletChar: "●",  fontSize: 9,  fontName: "" },
+  ],
 
   codeFontName: "D2Coding",
   codeFontSize: 9,

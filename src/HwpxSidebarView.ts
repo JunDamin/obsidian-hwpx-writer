@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, Notice } from "obsidian";
 import type HwpxWriterPlugin from "./main";
+import type { ListLevelStyle } from "./settings";
 import { convertMarkdownToHwpx } from "./converter/MarkdownToHwpx";
 import { TemplateEditorModal } from "./TemplateEditorModal";
 import { detectEnvironment, canUsePreview, openInHancom, EnvironmentInfo } from "./environment";
@@ -20,6 +21,8 @@ export class HwpxSidebarView extends ItemView {
   private env: EnvironmentInfo | null = null;
   private lastHwpxBytes: Uint8Array | null = null;
   private currentHeadingIdx = 0;
+  private currentBodyTabIdx = 0;
+  private currentListLevelIdx = 0;
 
   constructor(leaf: WorkspaceLeaf, plugin: HwpxWriterPlugin) {
     super(leaf);
@@ -210,32 +213,16 @@ export class HwpxSidebarView extends ItemView {
     this.resultEl.style.display = "none";
 
     // ── 접이식 설정 섹션들 ──
-    this.buildCollapsibleSection(container, "글꼴", (el) => {
-      this.buildFontSettings(el);
-    });
-
     this.buildCollapsibleSection(container, "페이지 설정", (el) => {
       this.buildPageSettings(el);
     });
 
-    this.buildCollapsibleSection(container, "스타일", (el) => {
+    this.buildCollapsibleSection(container, "헤딩 스타일", (el) => {
       this.buildStyleSettings(el);
     });
 
-    this.buildCollapsibleSection(container, "본문", (el) => {
-      this.buildBodySettings(el);
-    });
-
-    this.buildCollapsibleSection(container, "리스트", (el) => {
-      this.buildListSettings(el);
-    });
-
-    this.buildCollapsibleSection(container, "표 설정", (el) => {
-      this.buildTableSettings(el);
-    });
-
-    this.buildCollapsibleSection(container, "코드 블록", (el) => {
-      this.buildCodeSettings(el);
+    this.buildCollapsibleSection(container, "본문 스타일", (el) => {
+      this.buildBodyStyleSection(el);
     });
 
     this.buildCollapsibleSection(container, "프리셋 관리", (el) => {
@@ -266,56 +253,6 @@ export class HwpxSidebarView extends ItemView {
       content.style.display = isOpen ? "none" : "block";
       arrow.setText(isOpen ? "▶" : "▼");
     });
-  }
-
-  private buildFontSettings(el: HTMLElement) {
-    const s = this.plugin.settings;
-
-    // 본문 폰트
-    el.createEl("div", { text: "본문", cls: "hwpx-label" });
-    const bodyRow = el.createDiv("hwpx-setting-row");
-    bodyRow.createEl("span", { text: "한글" });
-    const hangulInput = bodyRow.createEl("input", { cls: "hwpx-text-input", value: s.fontHangul });
-    hangulInput.addEventListener("change", async () => {
-      this.plugin.settings.fontHangul = hangulInput.value;
-      this.plugin.settings.bodyFont = hangulInput.value; // 동기화
-      await this.plugin.saveSettings();
-    });
-
-    const latinRow = el.createDiv("hwpx-setting-row");
-    latinRow.createEl("span", { text: "영문" });
-    const latinInput = latinRow.createEl("input", { cls: "hwpx-text-input", value: s.fontLatin });
-    latinInput.addEventListener("change", async () => {
-      this.plugin.settings.fontLatin = latinInput.value;
-      await this.plugin.saveSettings();
-    });
-
-    // 헤딩 폰트
-    el.createEl("div", { text: "헤딩 (비어있으면 본문 폰트 사용)", cls: "hwpx-label" });
-    const hHangulRow = el.createDiv("hwpx-setting-row");
-    hHangulRow.createEl("span", { text: "한글" });
-    const hHangulInput = hHangulRow.createEl("input", {
-      cls: "hwpx-text-input", value: s.headingFontHangul,
-      attr: { placeholder: s.fontHangul },
-    });
-    hHangulInput.addEventListener("change", async () => {
-      this.plugin.settings.headingFontHangul = hHangulInput.value;
-      await this.plugin.saveSettings();
-    });
-
-    const hLatinRow = el.createDiv("hwpx-setting-row");
-    hLatinRow.createEl("span", { text: "영문" });
-    const hLatinInput = hLatinRow.createEl("input", {
-      cls: "hwpx-text-input", value: s.headingFontLatin,
-      attr: { placeholder: s.fontLatin },
-    });
-    hLatinInput.addEventListener("change", async () => {
-      this.plugin.settings.headingFontLatin = hLatinInput.value;
-      await this.plugin.saveSettings();
-    });
-
-    // 코드 폰트 (참조)
-    el.createEl("div", { text: "코드 블록 폰트는 '코드 블록' 섹션에서 설정", cls: "hwpx-label" });
   }
 
   private buildPageSettings(el: HTMLElement) {
@@ -377,48 +314,6 @@ export class HwpxSidebarView extends ItemView {
   }
 
   private buildStyleSettings(el: HTMLElement) {
-    const s = this.plugin.settings;
-
-    // 본문 폰트
-    const fontRow = el.createDiv("hwpx-setting-row");
-    fontRow.createEl("span", { text: "본문" });
-    const fontInput = fontRow.createEl("input", {
-      cls: "hwpx-text-input",
-      value: s.bodyFont,
-    });
-    fontInput.addEventListener("change", async () => {
-      this.plugin.settings.bodyFont = fontInput.value;
-      await this.plugin.saveSettings();
-    });
-    const sizeInput = fontRow.createEl("input", {
-      type: "number",
-      cls: "hwpx-num-input-sm",
-      value: String(s.bodyFontSize),
-    });
-    sizeInput.addEventListener("change", async () => {
-      this.plugin.settings.bodyFontSize = Number(sizeInput.value) || 10;
-      await this.plugin.saveSettings();
-    });
-    fontRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
-
-    // 줄간격
-    const lsRow = el.createDiv("hwpx-setting-row");
-    lsRow.createEl("span", { text: "줄간격" });
-    const lsInput = lsRow.createEl("input", {
-      type: "number",
-      cls: "hwpx-num-input-sm",
-      value: String(s.lineSpacing),
-    });
-    lsInput.addEventListener("change", async () => {
-      this.plugin.settings.lineSpacing = Number(lsInput.value) || 160;
-      await this.plugin.saveSettings();
-    });
-    lsRow.createEl("span", { text: "%", cls: "hwpx-unit" });
-
-    // 헤딩 스타일 H1~H6 (탭 전환 + 미리보기)
-    el.createEl("hr");
-    el.createEl("div", { text: "헤딩 스타일", cls: "hwpx-label" });
-
     // 탭 버튼 (H1~H6)
     const tabRow = el.createDiv("hwpx-heading-tabs");
     const panel = el.createDiv("hwpx-heading-panel");
@@ -727,6 +622,240 @@ export class HwpxSidebarView extends ItemView {
     const fsRow = el.createDiv("hwpx-setting-row");
     fsRow.createEl("span", { text: "크기" });
     this.addNumInput(fsRow, s.codeFontSize, "pt", (v) => { this.plugin.settings.codeFontSize = v; });
+  }
+
+  private buildBodyStyleSection(el: HTMLElement) {
+    const tabLabels = ["본문", "리스트", "표", "코드"];
+    const tabRow = el.createDiv("hwpx-style-tabs");
+    tabRow.style.gridTemplateColumns = "repeat(4, 1fr)";
+    const panel = el.createDiv("hwpx-heading-panel");
+    const buttons: HTMLButtonElement[] = [];
+
+    for (let t = 0; t < tabLabels.length; t++) {
+      const btn = tabRow.createEl("button", {
+        text: tabLabels[t],
+        cls: `hwpx-style-tab ${t === this.currentBodyTabIdx ? "active" : ""}`,
+      });
+      btn.addEventListener("click", () => {
+        this.currentBodyTabIdx = t;
+        buttons.forEach((b, bi) => b.toggleClass("active", bi === t));
+        this.renderBodyStylePanel(panel);
+      });
+      buttons.push(btn);
+    }
+
+    this.renderBodyStylePanel(panel);
+  }
+
+  private renderBodyStylePanel(panel: HTMLElement) {
+    panel.empty();
+    switch (this.currentBodyTabIdx) {
+      case 0:
+        this.renderBodyTab(panel);
+        break;
+      case 1:
+        this.renderListTab(panel);
+        break;
+      case 2:
+        this.buildTableSettings(panel);
+        break;
+      case 3:
+        this.buildCodeSettings(panel);
+        break;
+    }
+  }
+
+  private renderBodyTab(panel: HTMLElement) {
+    const s = this.plugin.settings;
+
+    // 미리보기 박스
+    const preview = panel.createDiv("hwpx-heading-preview");
+    const previewText = preview.createEl("div", { cls: "hwpx-heading-preview-text" });
+    const updatePreview = () => {
+      const latest = this.plugin.settings;
+      const fontName = latest.fontHangul || "맑은 고딕";
+      previewText.setText("본문 미리보기 텍스트");
+      previewText.style.fontSize = `${latest.bodyFontSize}pt`;
+      previewText.style.fontWeight = "400";
+      previewText.style.fontFamily = `"${fontName}", sans-serif`;
+    };
+    updatePreview();
+
+    // 한글 폰트
+    const hangulRow = panel.createDiv("hwpx-setting-row");
+    hangulRow.createEl("span", { text: "한글 폰트" });
+    const hangulInput = hangulRow.createEl("input", {
+      cls: "hwpx-text-input",
+      value: s.fontHangul,
+      attr: { placeholder: "맑은 고딕" },
+    });
+    hangulInput.addEventListener("change", async () => {
+      this.plugin.settings.fontHangul = hangulInput.value;
+      this.plugin.settings.bodyFont = hangulInput.value;
+      await this.plugin.saveSettings();
+      updatePreview();
+    });
+
+    // 영문 폰트
+    const latinRow = panel.createDiv("hwpx-setting-row");
+    latinRow.createEl("span", { text: "영문 폰트" });
+    const latinInput = latinRow.createEl("input", {
+      cls: "hwpx-text-input",
+      value: s.fontLatin,
+      attr: { placeholder: s.fontHangul || "맑은 고딕" },
+    });
+    latinInput.addEventListener("change", async () => {
+      this.plugin.settings.fontLatin = latinInput.value;
+      await this.plugin.saveSettings();
+      updatePreview();
+    });
+
+    // 크기
+    const sizeRow = panel.createDiv("hwpx-setting-row");
+    sizeRow.createEl("span", { text: "크기" });
+    const sizeInput = sizeRow.createEl("input", {
+      type: "number", cls: "hwpx-num-input-sm", value: String(s.bodyFontSize),
+    });
+    sizeInput.addEventListener("change", async () => {
+      this.plugin.settings.bodyFontSize = Number(sizeInput.value) || 10;
+      await this.plugin.saveSettings();
+      updatePreview();
+    });
+    sizeRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
+
+    // 줄간격
+    const lsRow = panel.createDiv("hwpx-setting-row");
+    lsRow.createEl("span", { text: "줄간격" });
+    const lsInput = lsRow.createEl("input", {
+      type: "number", cls: "hwpx-num-input-sm", value: String(s.lineSpacing),
+    });
+    lsInput.addEventListener("change", async () => {
+      this.plugin.settings.lineSpacing = Number(lsInput.value) || 160;
+      await this.plugin.saveSettings();
+      updatePreview();
+    });
+    lsRow.createEl("span", { text: "%", cls: "hwpx-unit" });
+
+    // 정렬
+    const alignRow = panel.createDiv("hwpx-setting-row");
+    alignRow.createEl("span", { text: "정렬" });
+    const alignBtns = alignRow.createDiv("hwpx-btn-group");
+    for (const [label, val] of [["양쪽", "JUSTIFY"], ["좌", "LEFT"], ["중앙", "CENTER"], ["우", "RIGHT"]] as const) {
+      const btn = alignBtns.createEl("button", { text: label, cls: `hwpx-toggle-btn ${s.bodyAlign === val ? "active" : ""}` });
+      btn.addEventListener("click", async () => {
+        this.plugin.settings.bodyAlign = val;
+        await this.plugin.saveSettings();
+        alignBtns.querySelectorAll("button").forEach(b => b.removeClass("active"));
+        btn.addClass("active");
+        updatePreview();
+      });
+    }
+
+    // 들여쓰기
+    const indentRow = panel.createDiv("hwpx-setting-row");
+    indentRow.createEl("span", { text: "들여쓰기" });
+    this.addNumInput(indentRow, s.bodyIndent, "mm", (v) => { this.plugin.settings.bodyIndent = v; });
+
+    // 간격
+    const spRow = panel.createDiv("hwpx-setting-row");
+    spRow.createEl("span", { text: "간격" });
+    spRow.createEl("span", { text: "앞", cls: "hwpx-unit" });
+    this.addNumInput(spRow, s.bodySpacingBefore, "mm", (v) => { this.plugin.settings.bodySpacingBefore = v; });
+    spRow.createEl("span", { text: "뒤", cls: "hwpx-unit" });
+    this.addNumInput(spRow, s.bodySpacingAfter, "mm", (v) => { this.plugin.settings.bodySpacingAfter = v; });
+  }
+
+  private renderListTab(panel: HTMLElement) {
+    const s = this.plugin.settings;
+
+    // Common settings
+    const commonRow = panel.createDiv("hwpx-setting-row");
+    commonRow.createEl("span", { text: "들여쓰기/레벨" });
+    this.addNumInput(commonRow, s.listIndentPerLevel, "mm", (v) => { this.plugin.settings.listIndentPerLevel = v; });
+    commonRow.createEl("span", { text: "줄간격", cls: "hwpx-unit" });
+    this.addNumInput(commonRow, s.listLineSpacing, "%", (v) => { this.plugin.settings.listLineSpacing = v; });
+
+    // Level tabs L1~L4
+    const tabRow = panel.createDiv("hwpx-style-tabs");
+    tabRow.style.gridTemplateColumns = "repeat(4, 1fr)";
+    const levelPanel = panel.createDiv("hwpx-heading-panel");
+    const buttons: HTMLButtonElement[] = [];
+
+    for (let l = 0; l < 4; l++) {
+      const btn = tabRow.createEl("button", {
+        text: `L${l + 1}`,
+        cls: `hwpx-style-tab ${l === this.currentListLevelIdx ? "active" : ""}`,
+      });
+      btn.addEventListener("click", () => {
+        this.currentListLevelIdx = l;
+        buttons.forEach((b, bi) => b.toggleClass("active", bi === l));
+        this.renderListLevelPanel(levelPanel);
+      });
+      buttons.push(btn);
+    }
+
+    this.renderListLevelPanel(levelPanel);
+  }
+
+  private renderListLevelPanel(panel: HTMLElement) {
+    panel.empty();
+    const li = this.currentListLevelIdx;
+    const s = this.plugin.settings;
+    const ls = s.listLevelStyles[li];
+    if (!ls) return;
+
+    // 미리보기
+    const preview = panel.createDiv("hwpx-heading-preview");
+    const previewText = preview.createEl("div", { cls: "hwpx-heading-preview-text" });
+    const updatePreview = () => {
+      const latest = this.plugin.settings.listLevelStyles[li];
+      const fontName = latest.fontName || this.plugin.settings.fontHangul || "맑은 고딕";
+      const size = latest.fontSize || this.plugin.settings.bodyFontSize;
+      previewText.setText(`${latest.bulletChar} 리스트 항목`);
+      previewText.style.fontSize = `${size}pt`;
+      previewText.style.fontFamily = `"${fontName}", sans-serif`;
+    };
+    updatePreview();
+
+    // 글머리표
+    const bulletRow = panel.createDiv("hwpx-setting-row");
+    bulletRow.createEl("span", { text: "글머리표" });
+    const bulletInput = bulletRow.createEl("input", {
+      cls: "hwpx-text-input", value: ls.bulletChar,
+    });
+    bulletInput.addEventListener("change", async () => {
+      this.plugin.settings.listLevelStyles[li].bulletChar = bulletInput.value;
+      await this.plugin.saveSettings();
+      updatePreview();
+    });
+
+    // 폰트
+    const fontRow = panel.createDiv("hwpx-setting-row");
+    fontRow.createEl("span", { text: "폰트" });
+    const fontInput = fontRow.createEl("input", {
+      type: "text", cls: "hwpx-text-input",
+      value: ls.fontName || "",
+      attr: { placeholder: `(본문: ${s.fontHangul || "맑은 고딕"})` },
+    });
+    fontInput.addEventListener("change", async () => {
+      this.plugin.settings.listLevelStyles[li].fontName = fontInput.value;
+      await this.plugin.saveSettings();
+      updatePreview();
+    });
+
+    // 크기
+    const sizeRow = panel.createDiv("hwpx-setting-row");
+    sizeRow.createEl("span", { text: "크기" });
+    const sizeInput = sizeRow.createEl("input", {
+      type: "number", cls: "hwpx-num-input-sm",
+      value: String(ls.fontSize),
+    });
+    sizeInput.addEventListener("change", async () => {
+      this.plugin.settings.listLevelStyles[li].fontSize = Number(sizeInput.value) || 0;
+      await this.plugin.saveSettings();
+      updatePreview();
+    });
+    sizeRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
   }
 
   private buildTemplateManager(el: HTMLElement) {

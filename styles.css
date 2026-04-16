@@ -498,6 +498,63 @@
   color: var(--text-muted);
 }
 
+/* 본문 스타일 탭 (4열 그리드) */
+.hwpx-style-tabs {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.hwpx-style-tab {
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-muted);
+}
+
+.hwpx-style-tab:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.hwpx-style-tab.active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+/* 리스트 레벨 탭 (L1~L4, 인라인) */
+.hwpx-level-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 6px 0 4px;
+}
+
+.hwpx-level-tab {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-muted);
+}
+
+.hwpx-level-tab:hover {
+  background: var(--background-modifier-hover);
+}
+
+.hwpx-level-tab.active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
 .hwpx-select-sm {
   padding: 2px 4px;
   border-radius: 4px;
