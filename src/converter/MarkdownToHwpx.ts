@@ -16,8 +16,19 @@ export async function convertMarkdownToHwpx(
   markdown: string,
   settings: HwpxWriterSettings,
 ): Promise<Uint8Array> {
-  // 설정 적용
-  setBulletChars(settings.listBulletChars || "ㅇ,-,∙,●");
+  const t0 = Date.now();
+
+  // 빈 마크다운 방어
+  if (!markdown || markdown.trim().length === 0) {
+    console.warn("[HWPX Writer] Empty markdown — generating blank document");
+  }
+
+  // 설정 적용 — listLevelStyles 우선, 없으면 레거시 listBulletChars 폴백
+  if (settings.listLevelStyles?.length) {
+    setListLevelStyles(settings.listLevelStyles);
+  } else {
+    setBulletChars(settings.listBulletChars || "ㅇ,-,∙,●");
+  }
 
   const doc = new HwpxDocument({ title: "", creator: "Obsidian HWPX Writer" });
 
@@ -190,13 +201,15 @@ export async function convertMarkdownToHwpx(
       for (const item of items) {
         const level = Math.floor(item.indent / 2);
         const prefix = item.ordered ? `${counter}. ` : getBulletChar(level);
-        const indentVal = 2000 * (level + 1);
+        const indentVal = mm(settings.listIndentPerLevel || 7) * (level + 1);
         const pp = doc.addParaProperty(new ParaProperties({
-          marginLeft: indentVal, indent: -2000,
+          marginLeft: indentVal, indent: -mm(settings.listIndentPerLevel || 7),
         }));
         const p = new Paragraph(pp);
-        p.addRun(prefix, styles.bodyCharPrId);
-        addFormattedRuns(p, item.text, styles);
+        // 레벨별 charPrId 적용 (있으면)
+        const listCpId = styles.listCharPrIds[level] || styles.bodyCharPrId;
+        p.addRun(prefix, listCpId);
+        addFormattedRunsWithBase(p, item.text, styles, listCpId);
         sec.addParagraph(p);
         if (item.ordered) counter++;
       }
@@ -216,6 +229,8 @@ export async function convertMarkdownToHwpx(
     sec.addParagraph(p);
   }
 
+  const elapsed = Date.now() - t0;
+  console.log(`[HWPX Writer] Conversion done in ${elapsed}ms`);
   return doc.toBytes();
 }
 
@@ -347,6 +362,15 @@ function registerStyles(doc: HwpxDocument, settings: HwpxWriterSettings) {
     height: pt(settings.bodyFontSize), textColor: settings.linkColor,
     underlineType: "BOTTOM", underlineShape: "SOLID", underlineColor: settings.linkColor,
   }));
+  // 리스트 레벨별 charPrId
+  const listCharPrIds: number[] = [];
+  if (settings.listLevelStyles?.length) {
+    for (const ls of settings.listLevelStyles) {
+      const fontSize = ls.fontSize || settings.bodyFontSize;
+      listCharPrIds.push(doc.addCharProperty(new CharProperties({ height: pt(fontSize) })));
+    }
+  }
+
   const centerParaPrId = doc.addParaProperty(new ParaProperties({ alignHorizontal: "CENTER" }));
   const headerBfId = doc.addBorderFill(new BorderFill({
     fill: new SolidFill({ faceColor: settings.tableHeaderBgColor }),
@@ -365,6 +389,7 @@ function registerStyles(doc: HwpxDocument, settings: HwpxWriterSettings) {
     bodyCharPrId, headingCharPrIds, headingParaPrIds,
     boldCharPrId, italicCharPrId, strikeCharPrId, codeCharPrId, linkCharPrId,
     centerParaPrId, headerBfId, bodyBfId,
+    listCharPrIds,
   };
 }
 
@@ -374,6 +399,10 @@ function setBulletChars(chars: string) {
   if (chars) {
     _bulletChars = chars.split(",").map(c => c.trim() + " ");
   }
+}
+
+function setListLevelStyles(levels: { bulletChar: string; fontSize: number; fontName: string }[]) {
+  _bulletChars = levels.map(l => (l.bulletChar || "ㅇ").trim() + " ");
 }
 
 function getBulletChar(level: number): string {

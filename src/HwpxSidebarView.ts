@@ -206,7 +206,16 @@ export class HwpxSidebarView extends ItemView {
       text: "📄 HWPX로 내보내기",
       cls: "hwpx-export-btn",
     });
-    exportBtn.addEventListener("click", () => this.plugin.exportCurrentFile());
+    exportBtn.addEventListener("click", async () => {
+      exportBtn.disabled = true;
+      exportBtn.setText("변환 중...");
+      try {
+        await this.plugin.exportCurrentFile();
+      } finally {
+        exportBtn.disabled = false;
+        exportBtn.setText("📄 HWPX로 내보내기");
+      }
+    });
 
     // ── 내보내기 결과 영역 ──
     this.resultEl = convertSection.createDiv("hwpx-result-section");
