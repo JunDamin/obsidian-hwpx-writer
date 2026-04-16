@@ -154,14 +154,17 @@ export default class HwpxWriterPlugin extends Plugin {
         view.showExportResult(fullPath, outputPath);
       }
     } catch (error) {
-      new Notice(`변환 실패: ${error}`);
-      console.error("HWPX export error:", error);
+      const msg = error instanceof Error ? error.message : String(error);
+      new Notice(`❌ 변환 실패: ${msg}`);
+      console.error("[HWPX Writer] export error:", error);
     }
   }
 
   /** 파일 덮어쓰기 확인 다이얼로그 */
   private confirmOverwrite(path: string): Promise<boolean> {
     return new Promise((resolve) => {
+      let resolved = false;
+      const safeResolve = (val: boolean) => { if (!resolved) { resolved = true; resolve(val); } };
       const modal = new (class extends (require("obsidian").Modal) {
         onOpen() {
           const { contentEl } = this;
@@ -170,11 +173,11 @@ export default class HwpxWriterPlugin extends Plugin {
           contentEl.createEl("p", { text: "덮어쓰시겠습니까?" });
           const btnRow = contentEl.createDiv({ cls: "hwpx-result-btns" });
           const yesBtn = btnRow.createEl("button", { text: "덮어쓰기", cls: "hwpx-editor-save-btn" });
-          yesBtn.addEventListener("click", () => { this.close(); resolve(true); });
+          yesBtn.addEventListener("click", () => { safeResolve(true); this.close(); });
           const noBtn = btnRow.createEl("button", { text: "취소", cls: "hwpx-editor-close-btn" });
-          noBtn.addEventListener("click", () => { this.close(); resolve(false); });
+          noBtn.addEventListener("click", () => { safeResolve(false); this.close(); });
         }
-        onClose() { resolve(false); }
+        onClose() { safeResolve(false); }
       })(this.app);
       modal.open();
     });
@@ -183,6 +186,7 @@ export default class HwpxWriterPlugin extends Plugin {
   private getOutputPath(file: TFile, settings: HwpxWriterSettings = this.settings): string {
     const folder = settings.outputFolder || file.parent?.path || "";
     const name = `${file.basename}.hwpx`;
-    return folder ? `${folder}/${name}` : name;
+    if (!folder || folder === "/" || folder === ".") return name;
+    return `${folder}/${name}`;
   }
 }

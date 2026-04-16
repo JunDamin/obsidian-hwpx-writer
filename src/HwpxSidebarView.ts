@@ -23,6 +23,7 @@ export class HwpxSidebarView extends ItemView {
   private currentHeadingIdx = 0;
   private currentBodyTabIdx = 0;
   private currentListLevelIdx = 0;
+  private expandedSections = new Set<string>();
 
   constructor(leaf: WorkspaceLeaf, plugin: HwpxWriterPlugin) {
     super(leaf);
@@ -254,13 +255,20 @@ export class HwpxSidebarView extends ItemView {
     header.createEl("span", { text: title });
 
     const content = section.createDiv("hwpx-collapsible-content");
-    content.style.display = "none";
+    const wasExpanded = this.expandedSections.has(title);
+    content.style.display = wasExpanded ? "block" : "none";
+    arrow.setText(wasExpanded ? "▼" : "▶");
     buildContent(content);
 
     header.addEventListener("click", () => {
       const isOpen = content.style.display !== "none";
       content.style.display = isOpen ? "none" : "block";
       arrow.setText(isOpen ? "▶" : "▼");
+      if (isOpen) {
+        this.expandedSections.delete(title);
+      } else {
+        this.expandedSections.add(title);
+      }
     });
   }
 
