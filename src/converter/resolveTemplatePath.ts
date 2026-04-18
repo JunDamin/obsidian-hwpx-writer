@@ -7,6 +7,7 @@
  */
 
 import type { App, Plugin } from "obsidian";
+import { log } from "../logger";
 import type { HwpxWriterSettings } from "../settings";
 import { TemplateStore } from "../templates/TemplateStore";
 
@@ -17,15 +18,15 @@ export function resolveActiveTemplatePath(
 ): string | null {
   const id = settings.activeTemplateId;
   if (!id) {
-    console.log("[HWPX Writer] No active template (activeTemplateId = null)");
+    log.info("No active template (activeTemplateId = null)");
     return null;
   }
   const store = new TemplateStore(app, plugin);
   const info = store.get(id);
   if (!info) {
-    console.warn(`[HWPX Writer] Active template "${id}" not found in store`);
+    log.warn(`Active template "${id}" not found in store`);
     return null;
   }
-  console.log(`[HWPX Writer] Active template resolved: ${info.name} → ${info.absPath}`);
+  log.info(`Active template resolved: ${info.name} → ${info.absPath}`);
   return info.absPath;
 }

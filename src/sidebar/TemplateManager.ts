@@ -11,6 +11,7 @@
  */
 
 import { Notice } from "obsidian";
+import { log } from "../logger";
 import type HwpxWriterPlugin from "../main";
 import { TemplateStore, TemplateInfo } from "../templates/TemplateStore";
 import { promptText, confirmModal } from "../ui/prompts";
@@ -324,7 +325,7 @@ export class TemplateManager {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       new Notice(`❌ 생성 실패: ${msg}`);
-      console.error("[HWPX Writer] saveFromDefaults error:", e);
+      log.error("saveFromDefaults error:", e);
     }
   }
 
@@ -351,7 +352,7 @@ export class TemplateManager {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       new Notice(`❌ 저장 실패: ${msg}`);
-      console.error("[HWPX Writer] saveFromCurrentSettings error:", e);
+      log.error("saveFromCurrentSettings error:", e);
     }
   }
 
@@ -371,7 +372,7 @@ export class TemplateManager {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       new Notice(`❌ 샘플 생성 실패: ${msg}`);
-      console.error("[HWPX Writer] seedSamples error:", e);
+      log.error("seedSamples error:", e);
     }
   }
 

@@ -514,7 +514,7 @@ export class TableBorderDesigner {
   private updatePreview(): void {
     const svg = this.svg;
     if (!svg) return;
-    svg.innerHTML = "";
+    svg.replaceChildren();
 
     // 좌표계: 외곽 (10,10)-(230,150). 헤더 높이 35, 본문 3행 35씩.
     const X0 = 10, X3 = 230;
@@ -829,7 +829,7 @@ export class TableBorderDesigner {
     const colorBeforeDrag = { value: spec.color };
     colorInput.addEventListener("mousedown", () => { colorBeforeDrag.value = spec.color; });
     const repaintMini = () => {
-      miniSvg.innerHTML = "";
+      miniSvg.replaceChildren();
       this.drawLineByType(miniSvg, spec, 2, 5, 58, 5);
     };
     colorInput.addEventListener("input", () => {

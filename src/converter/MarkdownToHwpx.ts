@@ -13,6 +13,7 @@
  *   - 태스크 리스트, 추가 GFM 기능
  */
 
+import { log } from "../logger";
 import {
   HwpxDocument, Section, Paragraph,
   CharProperties, ParaProperties, BorderFill, BorderLine, SolidFill,
@@ -58,7 +59,7 @@ export async function convertMarkdownToHwpx(
 
   // 빈 마크다운 방어
   if (!markdown || markdown.trim().length === 0) {
-    console.warn("[HWPX Writer] Empty markdown — generating blank document");
+    log.warn("Empty markdown — generating blank document");
   }
 
   // ── 템플릿 경로 ──────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ export async function convertMarkdownToHwpx(
   // 따라서 여기서는 템플릿 파일을 다시 읽을 필요가 없고, 그냥 settings 를 쓴다.
   // templatePath 는 호환을 위해 파라미터로 남겨두되 현재는 무시.
   let template: TemplateMetadata | null = null;
-  console.log("[HWPX Writer] convertMarkdownToHwpx: using settings-based path (template values already in settings)");
+  log.info("convertMarkdownToHwpx: using settings-based path (template values already in settings)");
 
   // 리스트 레벨별 글머리표 설정
   if (settings.listLevelStyles?.length) {
@@ -151,7 +152,7 @@ export async function convertMarkdownToHwpx(
   emitTokens(tokens, ctx);
 
   const elapsed = Date.now() - t0;
-  console.log(`[HWPX Writer] Conversion done in ${elapsed}ms`);
+  log.info(`Conversion done in ${elapsed}ms`);
   return doc.toBytes();
 }
 

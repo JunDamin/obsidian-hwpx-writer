@@ -9,6 +9,7 @@
  */
 
 import { App, Notice } from "obsidian";
+import { log } from "../logger";
 import type HwpxWriterPlugin from "../main";
 import type { EnvironmentInfo } from "../environment";
 import { canUsePreview, openInHancom } from "../environment";
@@ -117,11 +118,11 @@ export class PreviewPanel {
       const markdown = await this.app.vault.read(file);
       const { frontmatter } = parseFrontmatter(markdown);
       const { settings, appliedKeys } = applyFrontmatterOverrides(this.plugin.settings, frontmatter);
-      if (appliedKeys.length > 0) console.log("[HWPX Writer] Frontmatter:", appliedKeys);
+      if (appliedKeys.length > 0) log.info("Frontmatter:", appliedKeys);
 
       // Preview 도 템플릿 경로를 동일하게 태움 — "미리보기와 실제 결과가 다른" 혼란 방지
       const templatePath = resolveActiveTemplatePath(this.app, this.plugin, settings);
-      console.log("[HWPX Writer] Preview conversion: templatePath =", templatePath);
+      log.info("Preview conversion: templatePath =", templatePath);
       const hwpxBytes = await convertMarkdownToHwpx(markdown, settings, { templatePath });
       this.lastHwpxBytes = hwpxBytes;
 
@@ -130,7 +131,7 @@ export class PreviewPanel {
         await this.renderer.initialize();
         if (this.env && this.env.wasmInitOk === null) this.env.wasmInitOk = true;
       } catch (e) {
-        console.error("[HWPX Writer] WASM init failed:", e);
+        log.error("WASM init failed:", e);
         if (this.env) this.env.wasmInitOk = false;
         this.showFallback("WASM 초기화 실패", errorMessage(e));
         return;
@@ -141,7 +142,7 @@ export class PreviewPanel {
       this.currentPage = 0;
       this.renderCurrentPage();
     } catch (error) {
-      console.error("[HWPX Writer] Preview error:", error);
+      log.error("Preview error:", error);
       this.showFallback("미리보기 실패", errorMessage(error));
     }
   }
@@ -152,7 +153,13 @@ export class PreviewPanel {
     try {
       const svg = this.renderer.renderPageSvg(this.currentPage);
       this.canvasEl.empty();
-      this.canvasEl.innerHTML = svg;
+      // @rhwp/core 가 생성한 SVG 문자열을 DOMParser 로 파싱 후 노드 삽입
+      // (innerHTML 직접 사용은 Obsidian 가이드라인 권장 사항에 따라 회피)
+      const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
+      const svgRoot = parsed.documentElement;
+      if (svgRoot && svgRoot.nodeName.toLowerCase() === "svg") {
+        this.canvasEl.appendChild(svgRoot);
+      }
 
       const svgEl = this.canvasEl.querySelector("svg");
       if (svgEl) {
@@ -162,7 +169,7 @@ export class PreviewPanel {
 
       if (this.env) this.env.renderFailCount = 0;
     } catch (e) {
-      console.error("[HWPX Writer] Render page failed:", e);
+      log.error("Render page failed:", e);
       if (this.env) this.env.renderFailCount++;
       this.showFallback(`페이지 ${this.currentPage + 1} 렌더링 실패`, errorMessage(e));
     }

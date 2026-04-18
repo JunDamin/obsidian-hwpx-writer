@@ -14,6 +14,7 @@
  */
 
 import JSZip from "jszip";
+import { log } from "../logger";
 import * as fs from "fs";
 
 /** 문단 placeholder 의 스타일 참조. */
@@ -94,7 +95,7 @@ export async function readTemplate(absPath: string): Promise<TemplateMetadata> {
   try {
     bytes = fs.readFileSync(absPath);
   } catch (e) {
-    console.warn("[TemplateReader] read failed:", absPath, e);
+    log.warn("[TemplateReader] read failed:", absPath, e);
     return emptyMetadata();
   }
   return readTemplateFromBytes(new Uint8Array(bytes));
@@ -108,13 +109,13 @@ export async function readTemplateFromBytes(bytes: Uint8Array): Promise<Template
   try {
     zip = await JSZip.loadAsync(bytes);
   } catch (e) {
-    console.warn("[TemplateReader] not a valid ZIP:", e);
+    log.warn("[TemplateReader] not a valid ZIP:", e);
     return emptyMetadata();
   }
 
   const headerEntry = zip.file("Contents/header.xml");
   if (!headerEntry) {
-    console.warn("[TemplateReader] Contents/header.xml not found");
+    log.warn("[TemplateReader] Contents/header.xml not found");
     return emptyMetadata();
   }
   const headerXml = await headerEntry.async("string");

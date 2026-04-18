@@ -1,4 +1,5 @@
 import { Plugin, MarkdownView, TFile, Notice } from "obsidian";
+import { log } from "./logger";
 import * as path from "path";
 import { HwpxSidebarView, VIEW_TYPE_HWPX } from "./HwpxSidebarView";
 import { HwpxWriterSettings, DEFAULT_SETTINGS, HwpxSettingTab, migrateLegacySettings } from "./settings";
@@ -14,13 +15,13 @@ export default class HwpxWriterPlugin extends Plugin {
 
   async onload() {
     // 배포·빌드 식별용 마커 — 콘솔에서 이 메시지가 보이면 최신 코드가 로드된 것.
-    console.log(
+    log.info(
       "%c[HWPX Writer] Plugin loaded %cbuild=" + new Date().toISOString().slice(0, 19) + "%c",
       "color: white; background: #4A5568; padding: 2px 6px; border-radius: 3px;",
       "color: #4A5568; font-family: monospace;",
       "",
     );
-    console.log("[HWPX Writer] Template model: settings-import (apply via 📥 button)");
+    log.info("Template model: settings-import (apply via 📥 button)");
 
     await this.loadSettings();
 
@@ -93,7 +94,7 @@ export default class HwpxWriterPlugin extends Plugin {
         // 첫 실행 — 비파괴 시드
         const added = await store.seedSampleTemplates();
         if (added > 0) {
-          console.log(`[HWPX Writer] Auto-seeded ${added} sample template(s) on first run.`);
+          log.info(`Auto-seeded ${added} sample template(s) on first run.`);
         }
         this.settings.sampleTemplatesSeeded = true;
         this.settings.sampleTemplatesVersion = CURRENT_SAMPLE_VERSION;
@@ -107,10 +108,10 @@ export default class HwpxWriterPlugin extends Plugin {
         // v3 이전의 자동 생성 샘플 4종 정리 (md2hwpx 컨벤션 미준수라 무의미)
         const pruned = await store.pruneLegacySampleTemplates();
         if (pruned.length > 0) {
-          console.log(`[HWPX Writer] Pruned ${pruned.length} legacy sample(s): ${pruned.join(", ")}`);
+          log.info(`Pruned ${pruned.length} legacy sample(s): ${pruned.join(", ")}`);
         }
         const written = await store.seedSampleTemplates({ force: true });
-        console.log(
+        log.info(
           `[HWPX Writer] Upgraded sample templates to v${CURRENT_SAMPLE_VERSION} ` +
           `(${written} written).`,
         );
@@ -122,7 +123,7 @@ export default class HwpxWriterPlugin extends Plugin {
         await this.saveSettings();
       }
     } catch (e) {
-      console.warn("[HWPX Writer] Sample template seed/upgrade failed:", e);
+      log.warn("Sample template seed/upgrade failed:", e);
     }
   }
 
@@ -177,13 +178,13 @@ export default class HwpxWriterPlugin extends Plugin {
 
   async exportFile(file: TFile) {
     new Notice(`변환 중: ${file.basename}...`);
-    console.log("[HWPX Writer] Converting:", file.path);
+    log.info("Converting:", file.path);
 
     // ── Phase 1: Markdown 읽기 ──────────────────────────────
     let markdown: string;
     try {
       markdown = await this.app.vault.read(file);
-      console.log("[HWPX Writer] Markdown length:", markdown.length);
+      log.info("Markdown length:", markdown.length);
     } catch (error) {
       this.reportExportError("읽기 실패", error, file);
       return;
@@ -198,17 +199,17 @@ export default class HwpxWriterPlugin extends Plugin {
       const applied = applyFrontmatterOverrides(this.settings, frontmatter);
       effectiveSettings = applied.settings;
       if (applied.appliedKeys.length > 0) {
-        console.log("[HWPX Writer] Frontmatter overrides:", applied.appliedKeys);
+        log.info("Frontmatter overrides:", applied.appliedKeys);
       }
 
       // 활성 템플릿 경로 — preview 와 동일 로직 공유
       const templatePath = resolveActiveTemplatePath(this.app, this, effectiveSettings);
-      console.log("[HWPX Writer] Export conversion: templatePath =", templatePath);
+      log.info("Export conversion: templatePath =", templatePath);
 
       hwpxBytes = await convertMarkdownToHwpx(markdown, effectiveSettings, { templatePath });
-      console.log("[HWPX Writer] HWPX bytes:", hwpxBytes.length);
+      log.info("HWPX bytes:", hwpxBytes.length);
       outputPath = this.getOutputPath(file, effectiveSettings);
-      console.log("[HWPX Writer] Output path:", outputPath);
+      log.info("Output path:", outputPath);
     } catch (error) {
       this.reportExportError("변환 실패", error, file);
       return;
@@ -275,7 +276,7 @@ export default class HwpxWriterPlugin extends Plugin {
     } else {
       new Notice(`❌ ${phase}: ${msg}`, 6000);
     }
-    console.error(`[HWPX Writer] ${phase}:`, error);
+    log.error(`${phase}:`, error);
   }
 
   private getOutputPath(file: TFile, settings: HwpxWriterSettings = this.settings): string {

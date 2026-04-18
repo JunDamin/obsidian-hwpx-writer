@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { log } from "./logger";
 import type HwpxWriterPlugin from "./main";
 import { detectEnvironment, EnvironmentInfo } from "./environment";
 
@@ -54,7 +55,7 @@ export class HwpxSidebarView extends ItemView {
     container.addClass("hwpx-sidebar");
 
     this.env = await detectEnvironment(this.app, this.plugin.manifest.dir || "");
-    console.log("[HWPX Writer] Environment:", this.env);
+    log.info("Environment:", this.env);
 
     this.buildUI(container);
   }
@@ -157,7 +158,7 @@ export class HwpxSidebarView extends ItemView {
     templateSelect.addEventListener("change", async () => {
       const val = templateSelect.value;
       const newId = val || null;
-      console.log("[HWPX Writer] Template dropdown changed →", newId ?? "(none)");
+      log.info("Template dropdown changed →", newId ?? "(none)");
       this.plugin.settings.activeTemplateId = newId;
       if (newId) await this.applyTemplateToSettings(newId);
       await this.plugin.saveSettings();
@@ -180,7 +181,7 @@ export class HwpxSidebarView extends ItemView {
       reapplyBtn.style.fontSize = "12px";
       reapplyBtn.style.fontWeight = "bold";
       reapplyBtn.addEventListener("click", async () => {
-        console.log("[HWPX Writer] 📥 REAPPLY BUTTON CLICKED");
+        log.info("📥 REAPPLY BUTTON CLICKED");
         new Notice("📥 템플릿 값 불러오는 중...", 2000);
         try {
           const id = this.plugin.settings.activeTemplateId;
@@ -189,7 +190,7 @@ export class HwpxSidebarView extends ItemView {
           await this.plugin.saveSettings();
           this.rebuildUI();
         } catch (e) {
-          console.error("[HWPX Writer] Re-apply failed:", e);
+          log.error("Re-apply failed:", e);
           new Notice(`❌ 실패: ${e instanceof Error ? e.message : e}`);
         }
       });
@@ -202,20 +203,20 @@ export class HwpxSidebarView extends ItemView {
    * 표시되는 값이 템플릿 값으로 바뀌며, 이후 변환은 그 settings 로 진행.
    */
   private async applyTemplateToSettings(id: string): Promise<void> {
-    console.log("━".repeat(60));
-    console.log(`[HWPX Writer] ▶▶▶ applyTemplateToSettings START (id=${id})`);
+    log.info("━".repeat(60));
+    log.info(`▶▶▶ applyTemplateToSettings START (id=${id})`);
 
     const info = this.templateManager.list().find(t => t.id === id);
     if (!info) {
-      console.warn("[HWPX Writer] ✗ template not found in store");
+      log.warn("✗ template not found in store");
       new Notice("❌ 템플릿을 찾을 수 없습니다.", 4000);
       return;
     }
-    console.log(`[HWPX Writer] Found template file: ${info.absPath}`);
+    log.info(`Found template file: ${info.absPath}`);
 
     try {
       const meta = await readTemplate(info.absPath);
-      console.log(
+      log.info(
         `[HWPX Writer] Template parsed: headerXml=${meta.rawHeaderXml.length}B, ` +
         `placeholders paras=${meta.placeholderStyles.paragraphs.size} ` +
         `cells=${meta.placeholderStyles.cells.size} ` +
@@ -223,14 +224,14 @@ export class HwpxSidebarView extends ItemView {
       );
 
       if (!meta.rawHeaderXml) {
-        console.warn("[HWPX Writer] ✗ Template has no header.xml — nothing to apply");
+        log.warn("✗ Template has no header.xml — nothing to apply");
         new Notice("⚠️ 템플릿에 header.xml 이 없어 적용할 값이 없습니다.", 4000);
         return;
       }
 
       const { patch, summary } = extractSettingsFromTemplate(meta, meta.rawHeaderXml);
-      console.log(`[HWPX Writer] Extracted ${summary.length} fields from template:`);
-      for (const line of summary) console.log(`  ▸ ${line}`);
+      log.info(`Extracted ${summary.length} fields from template:`);
+      for (const line of summary) log.info(`  ▸ ${line}`);
 
       // 변경 전/후 비교 로그 — 무엇이 바뀌었는지 명확히
       for (const key of Object.keys(patch) as (keyof typeof patch)[]) {
@@ -242,18 +243,18 @@ export class HwpxSidebarView extends ItemView {
           if (typeof v === "object") return `(object, ${Object.keys(v).length} keys)`;
           return String(v);
         };
-        console.log(`    ${String(key)}: ${fmt(before)} → ${fmt(after)}`);
+        log.info(`    ${String(key)}: ${fmt(before)} → ${fmt(after)}`);
       }
 
       Object.assign(this.plugin.settings, patch);
-      console.log(`[HWPX Writer] ✓ Applied "${info.name}" to settings (${summary.length} fields)`);
-      console.log("━".repeat(60));
+      log.info(`✓ Applied "${info.name}" to settings (${summary.length} fields)`);
+      log.info("━".repeat(60));
       new Notice(
         `📋 "${info.name}" 스타일 적용됨 (${summary.length}개 항목)`,
         4000,
       );
     } catch (e) {
-      console.error("[HWPX Writer] ✗ applyTemplateToSettings FAILED:", e);
+      log.error("✗ applyTemplateToSettings FAILED:", e);
       new Notice(`❌ 템플릿 적용 실패: ${e instanceof Error ? e.message : e}`, 4000);
     }
   }

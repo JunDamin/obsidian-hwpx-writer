@@ -10,6 +10,7 @@
  */
 
 import type { App } from "obsidian";
+import { log } from "../logger";
 import { registerMeasureTextWidth } from "./MeasureText";
 
 export interface RhwpRenderResult {
@@ -49,7 +50,7 @@ export class RhwpRenderer {
       this.initialized = true;
       return;
     } catch (primaryErr) {
-      console.warn("[HWPX Writer] Primary WASM init failed, trying fs fallback:", primaryErr);
+      log.warn("Primary WASM init failed, trying fs fallback:", primaryErr);
     }
 
     // 2차 폴백: Node.js fs로 직접 읽기 (Electron 환경)
