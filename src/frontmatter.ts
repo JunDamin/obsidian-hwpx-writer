@@ -133,33 +133,33 @@ export function applyFrontmatterOverrides(
   const setStr = (key: string, prop: keyof HwpxWriterSettings) => {
     const v = src[key];
     if (typeof v === "string" && v.length > 0) {
-      (settings as any)[prop] = v;
+      (settings as Record<keyof HwpxWriterSettings, unknown>)[prop] = v;
       applied.push(`${key}=${v}`);
     }
   };
   const setNum = (key: string, prop: keyof HwpxWriterSettings) => {
     const v = src[key];
     if (typeof v === "number" && !isNaN(v)) {
-      (settings as any)[prop] = v;
+      (settings as Record<keyof HwpxWriterSettings, unknown>)[prop] = v;
       applied.push(`${key}=${v}`);
     }
   };
   const setBool = (key: string, prop: keyof HwpxWriterSettings) => {
     const v = src[key];
     if (typeof v === "boolean") {
-      (settings as any)[prop] = v;
+      (settings as Record<keyof HwpxWriterSettings, unknown>)[prop] = v;
       applied.push(`${key}=${v}`);
     }
   };
-  const setEnum = <T>(key: string, prop: keyof HwpxWriterSettings, allowed: T[]) => {
+  const setEnum = (key: string, prop: keyof HwpxWriterSettings, allowed: unknown[]) => {
     const v = src[key];
     if (allowed.includes(v)) {
-      (settings as any)[prop] = v;
+      (settings as Record<keyof HwpxWriterSettings, unknown>)[prop] = v;
       applied.push(`${key}=${v}`);
     }
   };
 
-  setEnum("paper", "paperSize", ["A4", "B5", "Letter"] as any);
+  setEnum("paper", "paperSize", ["A4", "B5", "Letter"]);
   setBool("landscape", "landscape");
   setNum("margin-left", "marginLeft");
   setNum("margin-right", "marginRight");
@@ -174,7 +174,7 @@ export function applyFrontmatterOverrides(
   setNum("body-size", "bodyFontSize");
   setNum("line-spacing", "lineSpacing");
   setStr("link-color", "linkColor");
-  setEnum("math-mode", "mathMode", ["none", "italic", "hwce"] as any);
+  setEnum("math-mode", "mathMode", ["none", "italic", "hwce"]);
   setStr("output-folder", "outputFolder");
 
   // body-font이 설정되면 fontHangul도 함께 동기화(하위 호환)

@@ -18,18 +18,18 @@ export class PresetManager {
     presetRow.createEl("span", { text: "프리셋:" });
     const presetSelect = presetRow.createEl("select", { cls: "hwpx-template-select" });
     this.refreshDropdown(presetSelect);
-    presetSelect.addEventListener("change", async () => {
-      const name = (presetSelect as HTMLSelectElement).value;
+    presetSelect.addEventListener("change", () => { void (async () => {
+      const name = presetSelect.value;
       if (name && name !== "__custom__") {
         await this.applyPreset(name);
       }
-    });
+    })(); });
 
     // 저장 / 내보내기 / 불러오기 / 삭제 버튼
     const presetBtnRow = parent.createDiv("hwpx-preset-btns");
 
     const savePresetBtn = presetBtnRow.createEl("button", { text: "💾 현재 설정 저장", cls: "hwpx-action-btn" });
-    savePresetBtn.addEventListener("click", async () => {
+    savePresetBtn.addEventListener("click", () => { void (async () => {
       const name = await promptText(this.plugin.app, "프리셋 저장", "", "프리셋 이름");
       if (!name) return;
       const { presets, activePreset, activeTemplateId, ...settingsToSave } = this.plugin.settings;
@@ -37,15 +37,15 @@ export class PresetManager {
       this.plugin.settings.activePreset = name;
       await this.plugin.saveSettings();
       this.refreshDropdown(presetSelect);
-      (presetSelect as HTMLSelectElement).value = name;
+      presetSelect.value = name;
       new Notice(`✅ 프리셋 "${name}" 저장됨`);
-    });
+    })(); });
 
     const exportPresetBtn = presetBtnRow.createEl("button", {
       text: "📤", cls: "hwpx-action-btn", attr: { title: "프리셋 내보내기 (JSON)" },
     });
     exportPresetBtn.addEventListener("click", () => {
-      const name = (presetSelect as HTMLSelectElement).value;
+      const name = presetSelect.value;
       if (!name || name === "__custom__") { new Notice("프리셋을 선택하세요."); return; }
       const preset = this.plugin.settings.presets[name];
       if (!preset) return;
@@ -64,7 +64,7 @@ export class PresetManager {
     importPresetBtn.addEventListener("click", () => {
       const input = document.createElement("input");
       input.type = "file"; input.accept = ".json";
-      input.addEventListener("change", async () => {
+      input.addEventListener("change", () => { void (async () => {
         const file = input.files?.[0];
         if (!file) return;
         const text = await file.text();
@@ -78,15 +78,15 @@ export class PresetManager {
         } catch (e) {
           new Notice("❌ 잘못된 프리셋 파일");
         }
-      });
+      })(); });
       input.click();
     });
 
     const deletePresetBtn = presetBtnRow.createEl("button", {
       text: "🗑", cls: "hwpx-action-btn", attr: { title: "선택된 프리셋 삭제" },
     });
-    deletePresetBtn.addEventListener("click", async () => {
-      const name = (presetSelect as HTMLSelectElement).value;
+    deletePresetBtn.addEventListener("click", () => { void (async () => {
+      const name = presetSelect.value;
       if (!name || name === "__custom__" || name === "기본") {
         new Notice("기본 프리셋은 삭제할 수 없습니다.");
         return;
@@ -96,7 +96,7 @@ export class PresetManager {
       await this.plugin.saveSettings();
       this.refreshDropdown(presetSelect);
       new Notice(`🗑 프리셋 "${name}" 삭제됨`);
-    });
+    })(); });
   }
 
   /** 접이식 "프리셋 관리" 섹션 전체 UI (고급) */
@@ -104,7 +104,7 @@ export class PresetManager {
     const btnRow = el.createDiv("hwpx-btn-row");
 
     const saveBtn = btnRow.createEl("button", { text: "💾 현재 설정 저장", cls: "hwpx-action-btn" });
-    saveBtn.addEventListener("click", async () => {
+    saveBtn.addEventListener("click", () => { void (async () => {
       const name = await promptText(this.plugin.app, "프리셋 저장", "", "프리셋 이름");
       if (!name) return;
       const { presets, activePreset, activeTemplateId, ...toSave } = this.plugin.settings;
@@ -113,13 +113,13 @@ export class PresetManager {
       await this.plugin.saveSettings();
       this.rebuildList(listEl);
       new Notice(`✅ "${name}" 저장됨`);
-    });
+    })(); });
 
     const importBtn = btnRow.createEl("button", { text: "📥 불러오기", cls: "hwpx-action-btn" });
     importBtn.addEventListener("click", () => {
       const input = document.createElement("input");
       input.type = "file"; input.accept = ".json";
-      input.addEventListener("change", async () => {
+      input.addEventListener("change", () => { void (async () => {
         const file = input.files?.[0];
         if (!file) return;
         try {
@@ -130,7 +130,7 @@ export class PresetManager {
           this.rebuildList(listEl);
           new Notice(`📥 "${name}" 불러옴`);
         } catch { new Notice("❌ 잘못된 파일"); }
-      });
+      })(); });
       input.click();
     });
 
@@ -159,24 +159,24 @@ export class PresetManager {
           text: "적용", cls: "hwpx-preset-action-btn",
           attr: { title: "이 프리셋 적용" },
         });
-        applyBtn.addEventListener("click", async () => {
+        applyBtn.addEventListener("click", () => { void (async () => {
           await this.applyPreset(name);
           this.rebuildList(listEl);
-        });
+        })(); });
       }
 
       // 복제
       const dupBtn = btns.createEl("button", {
         text: "📋", cls: "hwpx-preset-action-btn", attr: { title: "복제" },
       });
-      dupBtn.addEventListener("click", async () => {
+      dupBtn.addEventListener("click", () => { void (async () => {
         const newName = await promptText(this.plugin.app, "프리셋 복제", `${name} 사본`, "새 이름");
         if (!newName) return;
         this.plugin.settings.presets[newName] = JSON.parse(JSON.stringify(presets[name]));
         await this.plugin.saveSettings();
         this.rebuildList(listEl);
         new Notice(`📋 "${newName}" 복제됨`);
-      });
+      })(); });
 
       // 내보내기
       const exportBtn = btns.createEl("button", {
@@ -196,7 +196,7 @@ export class PresetManager {
       const renameBtn = btns.createEl("button", {
         text: "✏️", cls: "hwpx-preset-action-btn", attr: { title: "이름 변경" },
       });
-      renameBtn.addEventListener("click", async () => {
+      renameBtn.addEventListener("click", () => { void (async () => {
         const newName = await promptText(this.plugin.app, "이름 변경", name, "새 이름");
         if (!newName || newName === name) return;
         this.plugin.settings.presets[newName] = presets[name];
@@ -205,14 +205,14 @@ export class PresetManager {
         await this.plugin.saveSettings();
         this.rebuildList(listEl);
         new Notice(`✏️ "${name}" → "${newName}"`);
-      });
+      })(); });
 
       // 삭제 (기본은 삭제 불가)
       if (name !== "기본") {
         const delBtn = btns.createEl("button", {
           text: "🗑", cls: "hwpx-preset-action-btn hwpx-danger", attr: { title: "삭제" },
         });
-        delBtn.addEventListener("click", async () => {
+        delBtn.addEventListener("click", () => { void (async () => {
           const ok = await confirmModal(
             this.plugin.app,
             "삭제 확인",
@@ -226,7 +226,7 @@ export class PresetManager {
           await this.plugin.saveSettings();
           this.rebuildList(listEl);
           new Notice(`🗑 "${name}" 삭제됨`);
-        });
+        })(); });
       }
     }
   }
@@ -236,7 +236,7 @@ export class PresetManager {
     const presets = this.plugin.settings.presets || {};
     selectEl.createEl("option", { text: "커스텀", value: "__custom__" });
     for (const name of Object.keys(presets)) {
-      const opt = selectEl.createEl("option", { text: name, value: name }) as HTMLOptionElement;
+      const opt = selectEl.createEl("option", { text: name, value: name });
       if (name === this.plugin.settings.activePreset) opt.selected = true;
     }
   }

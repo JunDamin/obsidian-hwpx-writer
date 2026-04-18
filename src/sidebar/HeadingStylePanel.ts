@@ -46,11 +46,13 @@ export class HeadingStylePanel {
       const latest = this.plugin.settings.headingStyles[i];
       const fontName = latest.fontName || this.plugin.settings.fontHangul || "맑은 고딕";
       previewText.setText(`H${i + 1} 헤딩 미리보기`);
-      previewText.style.fontSize = `${latest.fontSize}pt`;
-      previewText.style.fontWeight = latest.bold ? "700" : "400";
-      previewText.style.fontStyle = latest.italic ? "italic" : "normal";
-      previewText.style.color = latest.color || "#000000";
-      previewText.style.fontFamily = `"${fontName}", sans-serif`;
+      previewText.setCssProps({
+        "--hwpx-preview-font-size": `${latest.fontSize}pt`,
+        "--hwpx-preview-font-weight": latest.bold ? "700" : "400",
+        "--hwpx-preview-font-style": latest.italic ? "italic" : "normal",
+        "--hwpx-preview-color": latest.color || "#000000",
+        "--hwpx-preview-font-family": `"${fontName}", sans-serif`,
+      });
     };
     updatePreview();
 
@@ -62,9 +64,9 @@ export class HeadingStylePanel {
       value: hs.fontName || "",
       attr: { placeholder: `(본문: ${s.fontHangul || "맑은 고딕"})` },
     });
-    fontInput.addEventListener("input", async () => {
+    fontInput.addEventListener("input", () => {
       this.plugin.settings.headingStyles[i].fontName = fontInput.value;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
 
@@ -74,9 +76,9 @@ export class HeadingStylePanel {
     const fsInput = sizeRow.createEl("input", {
       type: "number", cls: "hwpx-num-input-sm", value: String(hs.fontSize),
     });
-    fsInput.addEventListener("change", async () => {
+    fsInput.addEventListener("change", () => {
       this.plugin.settings.headingStyles[i].fontSize = Number(fsInput.value) || 10;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
     sizeRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
@@ -84,9 +86,9 @@ export class HeadingStylePanel {
     const colorInput = sizeRow.createEl("input", {
       type: "color", cls: "hwpx-color-input", value: hs.color || "#000000",
     });
-    colorInput.addEventListener("change", async () => {
+    colorInput.addEventListener("change", () => {
       this.plugin.settings.headingStyles[i].color = colorInput.value;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
 
@@ -97,33 +99,33 @@ export class HeadingStylePanel {
       text: "B", cls: `hwpx-toggle-btn hwpx-bold-btn ${hs.bold ? "active" : ""}`,
       attr: { title: "굵게" },
     });
-    boldBtn.addEventListener("click", async () => {
+    boldBtn.addEventListener("click", () => {
       const v = !this.plugin.settings.headingStyles[i].bold;
       this.plugin.settings.headingStyles[i].bold = v;
       boldBtn.toggleClass("active", v);
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
     const italicBtn = toggleRow.createEl("button", {
       text: "I", cls: `hwpx-toggle-btn ${hs.italic ? "active" : ""}`,
       attr: { style: "font-style:italic", title: "기울임" },
     });
-    italicBtn.addEventListener("click", async () => {
+    italicBtn.addEventListener("click", () => {
       const v = !this.plugin.settings.headingStyles[i].italic;
       this.plugin.settings.headingStyles[i].italic = v;
       italicBtn.toggleClass("active", v);
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
     const pbBtn = toggleRow.createEl("button", {
       text: "↵ 페이지", cls: `hwpx-toggle-btn ${hs.pageBreakBefore ? "active" : ""}`,
       attr: { title: "헤딩 앞에서 페이지 나누기" },
     });
-    pbBtn.addEventListener("click", async () => {
+    pbBtn.addEventListener("click", () => {
       const v = !this.plugin.settings.headingStyles[i].pageBreakBefore;
       this.plugin.settings.headingStyles[i].pageBreakBefore = v;
       pbBtn.toggleClass("active", v);
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
     });
 
     // 빈 줄 앞/뒤/높이
@@ -163,9 +165,9 @@ export class HeadingStylePanel {
         text: `→H${j + 1}`, cls: "hwpx-toggle-btn",
         attr: { title: `현재 H${i + 1} 설정을 H${j + 1}에 복사` },
       });
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", () => {
         this.plugin.settings.headingStyles[j] = { ...this.plugin.settings.headingStyles[i] };
-        await this.plugin.saveSettings();
+        void this.plugin.saveSettings();
         new Notice(`H${i + 1} → H${j + 1} 복사 완료`);
       });
     }

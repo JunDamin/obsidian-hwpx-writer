@@ -21,10 +21,10 @@ export function promptText(
         contentEl.createEl("h3", { text: title });
         const input = contentEl.createEl("input", {
           type: "text",
-          cls: "hwpx-text-input",
+          cls: "hwpx-text-input hwpx-prompt-input",
           value: defaultValue,
-          attr: { placeholder, style: "width: 100%; margin: 8px 0;" },
-        }) as HTMLInputElement;
+          attr: { placeholder },
+        });
         setTimeout(() => { input.focus(); input.select(); }, 30);
 
         const btnRow = contentEl.createDiv({ cls: "hwpx-result-btns" });

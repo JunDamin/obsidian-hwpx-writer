@@ -16,9 +16,9 @@ let lastFont = "";
 
 export function registerMeasureTextWidth(): void {
   // 이미 등록되어 있으면 건너뛴다 (다른 플러그인이 등록했을 수도 있음)
-  if (typeof (globalThis as any).measureTextWidth === "function") return;
+  if (typeof (globalThis as Record<string, unknown>).measureTextWidth === "function") return;
 
-  (globalThis as any).measureTextWidth = (font: string, text: string): number => {
+  (globalThis as Record<string, unknown>).measureTextWidth = (font: string, text: string): number => {
     if (!ctx) {
       ctx = document.createElement("canvas").getContext("2d");
       if (!ctx) return 0;

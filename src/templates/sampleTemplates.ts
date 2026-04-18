@@ -23,7 +23,7 @@ export interface SampleTemplate {
 export const CURRENT_SAMPLE_VERSION = 3;
 
 /** 전체 샘플 템플릿. */
-export async function createAllSampleTemplates(): Promise<SampleTemplate[]> {
+export function createAllSampleTemplates(): SampleTemplate[] {
   return [
     {
       name: "보고양식 (md2hwpx)",

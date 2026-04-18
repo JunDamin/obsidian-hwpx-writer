@@ -1,4 +1,4 @@
-import { Plugin, MarkdownView, TFile, Notice } from "obsidian";
+import { Plugin, MarkdownView, TFile, Notice, FileSystemAdapter } from "obsidian";
 import { log } from "./logger";
 import * as path from "path";
 import { HwpxSidebarView, VIEW_TYPE_HWPX } from "./HwpxSidebarView";
@@ -48,7 +48,7 @@ export default class HwpxWriterPlugin extends Plugin {
     // 커맨드: 사이드바 열기
     this.addCommand({
       id: "open-hwpx-sidebar",
-      name: "HWPX Writer 패널 열기",
+      name: "패널 열기",
       callback: () => this.activateSidebarView(),
     });
 
@@ -242,7 +242,7 @@ export default class HwpxWriterPlugin extends Plugin {
     const sidebarLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_HWPX);
     if (sidebarLeaves.length > 0) {
       const view = sidebarLeaves[0].view as HwpxSidebarView;
-      const adapter = this.app.vault.adapter as any;
+      const adapter = this.app.vault.adapter as FileSystemAdapter;
       const fullPath = path.join(adapter.basePath, outputPath);
       view.showExportResult(fullPath, outputPath);
     }

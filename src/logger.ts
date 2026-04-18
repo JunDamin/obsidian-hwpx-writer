@@ -21,12 +21,7 @@ function isDebugEnabled(): boolean {
   try {
     if (typeof __HWPX_DEBUG__ !== "undefined" && __HWPX_DEBUG__) return true;
   } catch { /* ignore */ }
-  // 런타임 opt-in (사용자가 devtools 에서 켬)
-  try {
-    return localStorage.getItem("hwpx-writer-debug") === "1";
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 const PREFIX = "[HWPX Writer]";
@@ -38,7 +33,7 @@ export const log = {
   },
   /** 일반 정보 — DEBUG 모드에서만 (프로덕션 콘솔 오염 방지) */
   info(...args: unknown[]): void {
-    if (isDebugEnabled()) console.info(PREFIX, ...args);
+    if (isDebugEnabled()) console.debug(PREFIX, ...args);
   },
   /** 경고 — 항상 출력 (사용자가 주의해야 할 상황) */
   warn(...args: unknown[]): void {

@@ -18,9 +18,9 @@ export function addNumInput(
     value: String(value),
   });
   if (unit) parent.createEl("span", { text: unit, cls: "hwpx-unit" });
-  input.addEventListener("change", async () => {
+  input.addEventListener("change", () => {
     onChange(Number(input.value) || 0);
-    await plugin.saveSettings();
+    void plugin.saveSettings();
   });
   return input;
 }
@@ -36,9 +36,9 @@ export function addColorInput(
     cls: "hwpx-color-input-sm",
     value,
   });
-  input.addEventListener("change", async () => {
+  input.addEventListener("change", () => {
     onChange(input.value);
-    await plugin.saveSettings();
+    void plugin.saveSettings();
   });
   return input;
 }
@@ -50,12 +50,12 @@ export function addCheckbox(
   plugin: HwpxWriterPlugin,
   onChange: (v: boolean) => void,
 ): HTMLInputElement {
-  const cb = parent.createEl("input", { type: "checkbox" }) as HTMLInputElement;
+  const cb = parent.createEl("input", { type: "checkbox" });
   cb.checked = value;
   parent.createEl("span", { text: ` ${label}`, cls: "hwpx-unit" });
-  cb.addEventListener("change", async () => {
+  cb.addEventListener("change", () => {
     onChange(cb.checked);
-    await plugin.saveSettings();
+    void plugin.saveSettings();
   });
   return cb;
 }

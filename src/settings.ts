@@ -303,9 +303,9 @@ export const DEFAULT_SETTINGS: HwpxWriterSettings = {
  * 이전 버전에서 저장된 설정에 들어있던 dead/legacy 필드들을 현행 필드로 이관하고 제거.
  * `loadData()` 결과를 이 함수로 통과시킨 뒤 DEFAULT_SETTINGS와 병합한다.
  */
-export function migrateLegacySettings(raw: any): Partial<HwpxWriterSettings> {
+export function migrateLegacySettings(raw: unknown): Partial<HwpxWriterSettings> {
   if (!raw || typeof raw !== "object") return {};
-  const out: any = { ...raw };
+  const out: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
 
   // bodyFont → fontHangul (UI가 bodyFont에 써두고 converter는 fontHangul을 읽던 버그 흔적)
   if (out.bodyFont && !out.fontHangul) {
@@ -360,7 +360,7 @@ export function migrateLegacySettings(raw: any): Partial<HwpxWriterSettings> {
  *   - 구버전 평면 필드 (tableBorderStyle/Width/Color + 6 boolean): 해석해서 조립
  *   - 둘 다 없음: 기본값 (모두 SOLID 검정)
  */
-function migrateBorderDesign(raw: any): TableBorderDesign {
+function migrateBorderDesign(raw: Record<string, unknown>): TableBorderDesign {
   const defaults = defaultBorderDesign();
   // 이미 최신 필드가 있으면 누락분만 병합
   if (raw.tableBorderDesign && typeof raw.tableBorderDesign === "object") {
@@ -368,7 +368,7 @@ function migrateBorderDesign(raw: any): TableBorderDesign {
     const merged: TableBorderDesign = { ...defaults };
     for (const k of Object.keys(defaults) as (keyof TableBorderDesign)[]) {
       if (d[k] && typeof d[k] === "object") {
-        merged[k] = { ...defaults[k], ...(d[k] as any) };
+        merged[k] = { ...defaults[k], ...(d[k] as BorderLineSpec) };
       }
     }
     return merged;
@@ -407,7 +407,7 @@ export class HwpxSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "HWPX Writer 설정" });
+    new Setting(containerEl).setName("HWPX Writer 설정").setHeading();
 
     // 기본 설정
     new Setting(containerEl)
@@ -429,8 +429,8 @@ export class HwpxSettingTab extends PluginSettingTab {
           .addOption("italic", "기울임 텍스트")
           .addOption("none", "무시")
           .setValue(this.plugin.settings.mathMode)
-          .onChange(async (value: any) => {
-            this.plugin.settings.mathMode = value;
+          .onChange(async (value) => {
+            this.plugin.settings.mathMode = value as "hwce" | "italic" | "none";
             await this.plugin.saveSettings();
           })
       );
@@ -446,7 +446,7 @@ export class HwpxSettingTab extends PluginSettingTab {
       );
 
     // 페이지 설정
-    containerEl.createEl("h3", { text: "페이지 설정" });
+    new Setting(containerEl).setName("페이지 설정").setHeading();
 
     new Setting(containerEl)
       .setName("용지 크기")
@@ -456,8 +456,8 @@ export class HwpxSettingTab extends PluginSettingTab {
           .addOption("B5", "B5")
           .addOption("Letter", "Letter")
           .setValue(this.plugin.settings.paperSize)
-          .onChange(async (value: any) => {
-            this.plugin.settings.paperSize = value;
+          .onChange(async (value) => {
+            this.plugin.settings.paperSize = value as "A4" | "B5" | "Letter";
             await this.plugin.saveSettings();
           })
       );
@@ -473,7 +473,7 @@ export class HwpxSettingTab extends PluginSettingTab {
       );
 
     // 스타일 설정
-    containerEl.createEl("h3", { text: "스타일" });
+    new Setting(containerEl).setName("스타일").setHeading();
 
     new Setting(containerEl)
       .setName("본문 한글 폰트")

@@ -102,7 +102,7 @@ function broadcastTypes(
   ref: BorderLineSpec,
   types: Record<SegmentKey, BorderLineType>,
 ): TableBorderDesign {
-  const result: any = {};
+  const result = {} as TableBorderDesign;
   for (const k of ["outerTop", "outerBottom", "outerLeft", "outerRight", "headerBottom", "innerH", "innerV"] as SegmentKey[]) {
     result[k] = { ...ref, type: types[k] };
   }
@@ -120,7 +120,7 @@ function mergeSpecs(
   ref: BorderLineSpec,
   types: Record<SegmentKey, BorderLineType>,
 ): TableBorderDesign {
-  const result: any = {};
+  const result = {} as TableBorderDesign;
   for (const k of Object.keys(d) as SegmentKey[]) {
     const newType = types[k];
     if (newType === "NONE") {
@@ -205,8 +205,7 @@ export class TableBorderDesigner {
     if (!this.undoBtn) return;
     const canUndo = this.undoStack.length > 0;
     this.undoBtn.disabled = !canUndo;
-    this.undoBtn.style.opacity = canUndo ? "1" : "0.4";
-    this.undoBtn.style.cursor = canUndo ? "pointer" : "not-allowed";
+    this.undoBtn.toggleClass("hwpx-disabled", !canUndo);
     this.undoBtn.setAttribute("title",
       canUndo ? `되돌리기 (${this.undoStack.length}단계 남음)` : "되돌릴 변경 내역이 없습니다",
     );
@@ -262,10 +261,6 @@ export class TableBorderDesigner {
 
   render(parent: HTMLElement): void {
     const container = parent.createDiv("hwpx-border-designer");
-    container.style.display = "flex";
-    container.style.flexDirection = "column";
-    container.style.gap = "8px";
-    container.style.margin = "6px 0";
 
     this.renderPresets(container);
     this.renderUserPresets(container);
@@ -275,24 +270,13 @@ export class TableBorderDesigner {
 
   private renderUserPresets(parent: HTMLElement): void {
     const wrap = parent.createDiv("hwpx-border-user-presets-wrap");
-    wrap.style.display = "flex";
-    wrap.style.flexDirection = "column";
-    wrap.style.gap = "4px";
 
-    const header = wrap.createDiv();
-    header.style.display = "flex";
-    header.style.alignItems = "center";
-    header.style.gap = "6px";
-    const label = header.createEl("span", { text: "내 프리셋" });
-    label.style.fontSize = "11px";
-    label.style.color = "var(--text-muted)";
+    const header = wrap.createDiv("hwpx-border-user-presets-header");
+    header.createEl("span", { text: "내 프리셋", cls: "hwpx-border-user-presets-label" });
 
     // 현재 디자인을 새 프리셋으로 저장
-    const saveBtn = header.createEl("button", { text: "💾 현재 설정 저장" });
-    saveBtn.style.fontSize = "11px";
-    saveBtn.style.padding = "2px 6px";
-    saveBtn.style.marginLeft = "auto";
-    saveBtn.addEventListener("click", async () => {
+    const saveBtn = header.createEl("button", { text: "💾 현재 설정 저장", cls: "hwpx-border-save-btn" });
+    saveBtn.addEventListener("click", () => { void (async () => {
       const name = await promptText(
         this.plugin.app,
         "테두리 프리셋 저장",
@@ -301,12 +285,9 @@ export class TableBorderDesigner {
       );
       if (!name) return;
       await this.saveUserPreset(name.trim());
-    });
+    })(); });
 
     this.userPresetsEl = wrap.createDiv("hwpx-border-user-presets");
-    this.userPresetsEl.style.display = "flex";
-    this.userPresetsEl.style.flexWrap = "wrap";
-    this.userPresetsEl.style.gap = "4px";
     this.rebuildUserPresets();
   }
 
@@ -320,29 +301,16 @@ export class TableBorderDesigner {
     if (presets.length === 0) {
       const empty = container.createEl("span", {
         text: "저장된 프리셋이 없습니다",
+        cls: "hwpx-border-user-chip-empty",
       });
-      empty.style.fontSize = "11px";
-      empty.style.color = "var(--text-faint)";
-      empty.style.fontStyle = "italic";
       return;
     }
 
     for (let i = 0; i < presets.length; i++) {
       const preset = presets[i];
       const chip = container.createDiv("hwpx-border-user-chip");
-      chip.style.display = "inline-flex";
-      chip.style.alignItems = "center";
-      chip.style.border = "1px solid var(--background-modifier-border)";
-      chip.style.borderRadius = "12px";
-      chip.style.background = "var(--background-secondary)";
-      chip.style.overflow = "hidden";
 
-      const applyBtn = chip.createEl("button", { text: preset.name });
-      applyBtn.style.border = "none";
-      applyBtn.style.background = "transparent";
-      applyBtn.style.padding = "3px 8px";
-      applyBtn.style.fontSize = "11px";
-      applyBtn.style.cursor = "pointer";
+      const applyBtn = chip.createEl("button", { text: preset.name, cls: "hwpx-border-chip-apply-btn" });
       applyBtn.setAttribute("title", `"${preset.name}" 프리셋 적용 (클릭)`);
 
       // Hover 시 영향 구간 강조 (built-in 프리셋과 동일)
@@ -359,32 +327,19 @@ export class TableBorderDesigner {
       applyBtn.addEventListener("focus", startHighlight);
       applyBtn.addEventListener("blur", endHighlight);
 
-      applyBtn.addEventListener("click", async () => {
+      applyBtn.addEventListener("click", () => { void (async () => {
         this.pushUndo();
         this.highlightedSegments = null;
         this.plugin.settings.tableBorderDesign = structuredClone(preset.design);
         await this.plugin.saveSettings();
         this.updatePreview();
         this.updateEditor();
-      });
+      })(); });
 
       // 삭제 버튼 (×)
-      const delBtn = chip.createEl("button", { text: "×" });
-      delBtn.style.border = "none";
-      delBtn.style.background = "transparent";
-      delBtn.style.padding = "3px 8px";
-      delBtn.style.fontSize = "13px";
-      delBtn.style.lineHeight = "1";
-      delBtn.style.cursor = "pointer";
-      delBtn.style.color = "var(--text-muted)";
+      const delBtn = chip.createEl("button", { text: "×", cls: "hwpx-border-chip-del-btn" });
       delBtn.setAttribute("title", `"${preset.name}" 삭제`);
-      delBtn.addEventListener("mouseenter", () => {
-        delBtn.style.color = "var(--text-error)";
-      });
-      delBtn.addEventListener("mouseleave", () => {
-        delBtn.style.color = "var(--text-muted)";
-      });
-      delBtn.addEventListener("click", async (ev) => {
+      delBtn.addEventListener("click", (ev) => { void (async () => {
         ev.stopPropagation();
         const ok = await confirmModal(
           this.plugin.app,
@@ -397,7 +352,7 @@ export class TableBorderDesigner {
         this.plugin.settings.tableBorderUserPresets.splice(i, 1);
         await this.plugin.saveSettings();
         this.rebuildUserPresets();
-      });
+      })(); });
     }
   }
 
@@ -426,10 +381,8 @@ export class TableBorderDesigner {
 
   private renderPresets(parent: HTMLElement): void {
     const row = parent.createDiv("hwpx-border-presets");
-    row.style.display = "grid";
-    // 프리셋 N개 + 되돌리기 1개 = (N+1) 컬럼
-    row.style.gridTemplateColumns = `repeat(${PRESETS.length}, 1fr) auto`;
-    row.style.gap = "4px";
+    // 프리셋 N개 + 되돌리기 1개 = (N+1) 컬럼 — CSS var 로 동적 지정
+    row.setCssProps({ "--hwpx-border-presets-cols": `repeat(${PRESETS.length}, 1fr) auto` });
 
     for (const preset of PRESETS) {
       const btn = row.createEl("button", {
@@ -437,8 +390,6 @@ export class TableBorderDesigner {
         cls: "hwpx-preset-action-btn",
         attr: { title: `"${preset.label}" 프리셋 미리보기 (클릭 시 적용)` },
       });
-      btn.style.fontSize = "11px";
-      btn.style.padding = "4px 2px";
 
       // Hover/focus 시 "이 프리셋이 바꿀 구간"을 강조 표시
       const startHighlight = () => {
@@ -456,7 +407,7 @@ export class TableBorderDesigner {
       btn.addEventListener("blur", endHighlight);
 
       // 실제 적용은 클릭에서만
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", () => { void (async () => {
         this.pushUndo();
         const applied = preset.apply(this.actualDesign, this.referenceSpec());
         this.highlightedSegments = null;
@@ -464,48 +415,37 @@ export class TableBorderDesigner {
         await this.plugin.saveSettings();
         this.updatePreview();
         this.updateEditor();
-      });
+      })(); });
     }
 
     // 되돌리기 버튼 — 프리셋 행 우측 끝
     const undoBtn = row.createEl("button", {
       text: "↶",
-      cls: "hwpx-preset-action-btn",
+      cls: "hwpx-preset-action-btn hwpx-undo-btn",
     });
-    undoBtn.style.fontSize = "14px";
-    undoBtn.style.padding = "4px 6px";
-    undoBtn.style.fontWeight = "bold";
     this.undoBtn = undoBtn;
     this.refreshUndoButton();
 
-    undoBtn.addEventListener("click", async () => {
+    undoBtn.addEventListener("click", () => { void (async () => {
       const prev = this.undoStack.pop();
       if (!prev) return;
-      this.previewOverride = null;
+      this.highlightedSegments = null;
       this.plugin.settings.tableBorderDesign = prev;
       await this.plugin.saveSettings();
       this.refreshUndoButton();
       this.updatePreview();
       this.updateEditor();
-    });
+    })(); });
   }
 
   private renderPreview(parent: HTMLElement): void {
     const box = parent.createDiv("hwpx-border-preview");
-    box.style.background = "var(--background-primary)";
-    box.style.border = "1px dashed var(--background-modifier-border)";
-    box.style.padding = "8px";
-    box.style.display = "flex";
-    box.style.alignItems = "center";
-    box.style.justifyContent = "center";
 
     // SVG: viewBox 만 지정, 높이는 CSS 로 aspect-ratio 처리 (SVG height 속성에 "auto" 무효)
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 240 160");
     svg.setAttribute("width", "100%");
-    svg.style.maxWidth = "320px";
-    svg.style.height = "auto";   // CSS 속성은 "auto" 유효
-    svg.style.cursor = "pointer";
+    svg.setAttribute("class", "hwpx-border-preview-svg");
     box.appendChild(svg);
     this.svg = svg;
     this.updatePreview();
@@ -591,7 +531,7 @@ export class TableBorderDesigner {
       glow.setAttribute("stroke-width", "8");
       glow.setAttribute("opacity", "0.45");
       glow.setAttribute("stroke-linecap", "round");
-      glow.style.pointerEvents = "none";
+      glow.setAttribute("pointer-events", "none");
       svg.appendChild(glow);
     }
 
@@ -610,8 +550,7 @@ export class TableBorderDesigner {
     hoverGhost.setAttribute("stroke-width", "1");
     hoverGhost.setAttribute("stroke-dasharray", "2 3");
     hoverGhost.setAttribute("opacity", "0");
-    hoverGhost.style.pointerEvents = "none";
-    hoverGhost.style.transition = "opacity 0.12s ease";
+    hoverGhost.setAttribute("class", "hwpx-svg-hover-ghost");
     svg.appendChild(hoverGhost);
 
     // 히트박스 (투명) + 선택 표시
@@ -621,7 +560,7 @@ export class TableBorderDesigner {
     hit.setAttribute("stroke", isSelected ? "var(--interactive-accent)" : "transparent");
     hit.setAttribute("stroke-width", "10");
     hit.setAttribute("opacity", isSelected ? "0.35" : "1");
-    hit.style.cursor = "pointer";
+    hit.setAttribute("class", "hwpx-svg-hit");
     hit.addEventListener("click", (ev) => {
       ev.stopPropagation();
       // 같은 선 다시 클릭 → 선택 해제. 다른 선 클릭 → 그 선으로 변경.
@@ -670,7 +609,7 @@ export class TableBorderDesigner {
       line.setAttribute("stroke-width", String(w));
       const dash = dashPattern(type);
       if (dash) line.setAttribute("stroke-dasharray", dash);
-      line.style.pointerEvents = "none";
+      line.setAttribute("pointer-events", "none");
       svg.appendChild(line);
       return line;
     };
@@ -723,7 +662,7 @@ export class TableBorderDesigner {
     path.setAttribute("stroke", color);
     path.setAttribute("stroke-width", "1");
     path.setAttribute("fill", "none");
-    path.style.pointerEvents = "none";
+    path.setAttribute("pointer-events", "none");
     svg.appendChild(path);
     if (double) {
       const p2 = path.cloneNode() as SVGPathElement;
@@ -736,10 +675,6 @@ export class TableBorderDesigner {
 
   private renderEditor(parent: HTMLElement): void {
     this.editorEl = parent.createDiv("hwpx-border-editor");
-    this.editorEl.style.border = "1px solid var(--background-modifier-border)";
-    this.editorEl.style.borderRadius = "3px";
-    this.editorEl.style.padding = "8px";
-    this.editorEl.style.background = "var(--background-secondary)";
     this.updateEditor();
   }
 
@@ -757,44 +692,30 @@ export class TableBorderDesigner {
       : this.pendingRef;
 
     // 헤더: 무엇을 편집 중인지 + 미니 프리뷰 선
-    const header = el.createDiv();
-    header.style.display = "flex";
-    header.style.alignItems = "center";
-    header.style.gap = "8px";
-    header.style.marginBottom = "6px";
+    const header = el.createDiv("hwpx-border-editor-header");
 
     const labelText = editingSelection
       ? `선택: ${SEGMENT_LABELS[this.selectedSegment!]}`
       : "기본 선 스타일";
     const labelEl = header.createEl("div");
-    labelEl.createEl("strong", { text: labelText }).style.fontSize = "12px";
+    labelEl.createEl("strong", { text: labelText, cls: "hwpx-border-editor-strong" });
     if (!editingSelection) {
-      const hint = header.createEl("span", {
+      header.createEl("span", {
         text: "(프리셋이 이 스타일로 적용)",
+        cls: "hwpx-border-editor-hint",
       });
-      hint.style.fontSize = "10px";
-      hint.style.color = "var(--text-muted)";
     }
 
     // 미니 프리뷰 — 현재 spec 을 짧은 SVG 선으로 렌더해 "지금 어떤 선인지" 즉시 보여줌
     const miniSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     miniSvg.setAttribute("viewBox", "0 0 60 10");
     miniSvg.setAttribute("width", "60");
-    miniSvg.style.height = "10px";
-    miniSvg.style.marginLeft = "auto";
+    miniSvg.setAttribute("class", "hwpx-border-mini-svg");
     this.drawLineByType(miniSvg, spec, 2, 5, 58, 5);
     header.appendChild(miniSvg);
 
     // ── 컨트롤 ─────────────────────────────────────────────
-    const mkRow = (): HTMLElement => {
-      const r = el.createDiv();
-      r.style.display = "grid";
-      r.style.gridTemplateColumns = "auto 1fr";
-      r.style.gap = "6px";
-      r.style.alignItems = "center";
-      r.style.marginBottom = "4px";
-      return r;
-    };
+    const mkRow = (): HTMLElement => el.createDiv("hwpx-border-editor-row");
 
     // 변경 커밋 — 선택 편집이면 saveSettings + undo, pendingRef 면 그냥 상태만.
     const commit = async (mutate: () => void, shouldUndo: boolean = true) => {
@@ -806,26 +727,22 @@ export class TableBorderDesigner {
 
     // 종류
     const typeRow = mkRow();
-    typeRow.createEl("span", { text: "종류" }).style.fontSize = "11px";
-    const typeSel = typeRow.createEl("select", { cls: "hwpx-select-sm" }) as HTMLSelectElement;
+    typeRow.createEl("span", { text: "종류", cls: "hwpx-border-editor-label" });
+    const typeSel = typeRow.createEl("select", { cls: "hwpx-select-sm" });
     for (const [val, lbl] of BORDER_TYPE_LABELS) {
       typeSel.createEl("option", { text: lbl, value: val });
     }
     typeSel.value = spec.type;
-    typeSel.addEventListener("change", async () => {
+    typeSel.addEventListener("change", () => { void (async () => {
       await commit(() => { spec.type = typeSel.value as BorderLineType; });
-      // 미니 프리뷰도 새 값으로 갱신하려면 에디터 다시 그림
       this.updateEditor();
-    });
+    })(); });
 
     // 색
     const colorRow = mkRow();
-    colorRow.createEl("span", { text: "색" }).style.fontSize = "11px";
-    const colorInput = colorRow.createEl("input", { attr: { type: "color" } }) as HTMLInputElement;
+    colorRow.createEl("span", { text: "색", cls: "hwpx-border-editor-label" });
+    const colorInput = colorRow.createEl("input", { cls: "hwpx-border-color-input", attr: { type: "color" } });
     colorInput.value = spec.color;
-    colorInput.style.width = "100%";
-    colorInput.style.height = "24px";
-    colorInput.style.padding = "0";
     const colorBeforeDrag = { value: spec.color };
     colorInput.addEventListener("mousedown", () => { colorBeforeDrag.value = spec.color; });
     const repaintMini = () => {
@@ -837,8 +754,7 @@ export class TableBorderDesigner {
       this.updatePreview();
       repaintMini();
     });
-    colorInput.addEventListener("change", async () => {
-      // 선택 편집이면서 실제로 값이 바뀌었으면 undo 스냅샷 수동 푸시
+    colorInput.addEventListener("change", () => { void (async () => {
       if (editingSelection && colorInput.value !== colorBeforeDrag.value && this.selectedSegment) {
         const snapshot = structuredClone(this.actualDesign);
         (snapshot[this.selectedSegment] as BorderLineSpec).color = colorBeforeDrag.value;
@@ -849,32 +765,30 @@ export class TableBorderDesigner {
       if (editingSelection) await this.plugin.saveSettings();
       this.updatePreview();
       this.updateEditor();
-    });
+    })(); });
 
     // 굵기
     const widthRow = mkRow();
-    widthRow.createEl("span", { text: "굵기" }).style.fontSize = "11px";
-    const widthSel = widthRow.createEl("select", { cls: "hwpx-select-sm" }) as HTMLSelectElement;
+    widthRow.createEl("span", { text: "굵기", cls: "hwpx-border-editor-label" });
+    const widthSel = widthRow.createEl("select", { cls: "hwpx-select-sm" });
     for (const w of BORDER_WIDTHS) {
       widthSel.createEl("option", { text: w, value: w });
     }
-    if (!BORDER_WIDTHS.includes(spec.width as any)) {
+    if (!(BORDER_WIDTHS as readonly string[]).includes(spec.width)) {
       widthSel.createEl("option", { text: `${spec.width} (사용자)`, value: spec.width });
     }
     widthSel.value = spec.width;
-    widthSel.addEventListener("change", async () => {
+    widthSel.addEventListener("change", () => { void (async () => {
       await commit(() => { spec.width = widthSel.value; });
       this.updateEditor();
-    });
+    })(); });
 
     // 선택이 없는 상태에서의 부가 안내
     if (!editingSelection) {
-      const tip = el.createEl("div", {
+      el.createEl("div", {
         text: "프리뷰의 선을 클릭하면 그 선 하나만 편집할 수 있습니다.",
+        cls: "hwpx-border-editor-tip",
       });
-      tip.style.fontSize = "10px";
-      tip.style.color = "var(--text-faint)";
-      tip.style.marginTop = "6px";
     }
   }
 }

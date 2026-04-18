@@ -489,7 +489,11 @@
 .hwpx-heading-preview-text {
   width: 100%;
   line-height: 1.2;
-  /* font-size / weight / style / color는 JS에서 동적으로 설정 */
+  font-size: var(--hwpx-preview-font-size, 10pt);
+  font-weight: var(--hwpx-preview-font-weight, 400);
+  font-style: var(--hwpx-preview-font-style, normal);
+  color: var(--hwpx-preview-color, inherit);
+  font-family: var(--hwpx-preview-font-family, sans-serif);
 }
 
 .hwpx-heading-field-label {
@@ -501,6 +505,7 @@
 /* 본문 스타일 탭 (4열 그리드) */
 .hwpx-style-tabs {
   display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 2px;
   margin-bottom: 8px;
 }
@@ -610,4 +615,252 @@
 .hwpx-badge {
   font-size: 10px;
   color: var(--interactive-accent);
+}
+
+/* ── Utility ── */
+.hwpx-hidden { display: none; }
+
+.hwpx-divider {
+  border-top: 1px solid var(--background-modifier-border);
+  margin: 8px 0;
+}
+
+.hwpx-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 0 0 8px;
+}
+
+.hwpx-disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+}
+
+.hwpx-reapply-btn {
+  padding: 4px 10px;
+  margin-left: 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.hwpx-prompt-input {
+  width: 100%;
+  margin: 8px 0;
+}
+
+/* ── Border Designer ── */
+.hwpx-border-designer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.hwpx-border-user-presets-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hwpx-border-user-presets-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hwpx-border-user-presets-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.hwpx-border-save-btn {
+  font-size: 11px;
+  padding: 2px 6px;
+  margin-left: auto;
+}
+
+.hwpx-border-user-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hwpx-border-user-chip-empty {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.hwpx-border-user-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  background: var(--background-secondary);
+  overflow: hidden;
+}
+
+.hwpx-border-chip-apply-btn {
+  border: none;
+  background: transparent;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.hwpx-border-chip-del-btn {
+  border: none;
+  background: transparent;
+  padding: 3px 8px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.hwpx-border-chip-del-btn:hover {
+  color: var(--text-error);
+}
+
+.hwpx-border-presets {
+  display: grid;
+  grid-template-columns: var(--hwpx-border-presets-cols, repeat(5, 1fr) auto);
+  gap: 4px;
+}
+
+.hwpx-undo-btn {
+  font-size: 14px !important;
+  padding: 4px 6px !important;
+  font-weight: bold;
+}
+
+.hwpx-border-preview {
+  background: var(--background-primary);
+  border: 1px dashed var(--background-modifier-border);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hwpx-border-preview-svg {
+  max-width: 320px;
+  height: auto;
+  cursor: pointer;
+}
+
+.hwpx-svg-overlay {
+  pointer-events: none;
+}
+
+.hwpx-svg-hover-ghost {
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.hwpx-svg-hit {
+  cursor: pointer;
+}
+
+.hwpx-border-mini-svg {
+  height: 10px;
+  margin-left: auto;
+}
+
+.hwpx-border-editor {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  padding: 8px;
+  background: var(--background-secondary);
+}
+
+.hwpx-border-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hwpx-border-editor-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.hwpx-border-editor-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.hwpx-border-editor-label {
+  font-size: 11px;
+}
+
+.hwpx-border-color-input {
+  width: 100%;
+  height: 24px;
+  padding: 0;
+}
+
+.hwpx-border-editor-tip {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 6px;
+}
+
+.hwpx-border-editor-strong {
+  font-size: 12px;
+}
+
+/* ── Preview Panel ── */
+.hwpx-preview-svg {
+  width: 100%;
+  height: auto;
+}
+
+.hwpx-preview-note {
+  font-size: 11px;
+  color: var(--text-accent);
+}
+
+.hwpx-preview-msg {
+  font-size: 10px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.hwpx-preview-detail {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ── Template Manager ── */
+.hwpx-template-empty {
+  padding: 8px;
+  text-align: center;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-secondary);
+}
+
+.hwpx-template-empty-msg {
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.hwpx-template-quick-btn {
+  font-size: 11px;
+}
+
+.hwpx-template-meta-line {
+  font-size: 11px;
+  margin-top: 2px;
 }

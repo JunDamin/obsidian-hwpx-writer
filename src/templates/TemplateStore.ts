@@ -7,6 +7,10 @@
  */
 
 import type { App, Plugin } from "obsidian";
+import { FileSystemAdapter } from "obsidian";
+import * as fs from "fs";
+import * as path from "path";
+import { shell } from "electron";
 import { createAllSampleTemplates } from "./sampleTemplates";
 
 export interface TemplateInfo {
@@ -23,9 +27,7 @@ export class TemplateStore {
 
   /** 템플릿 저장 디렉토리의 OS 절대 경로. 없으면 생성한다. */
   getTemplatesDir(): string {
-    const path = require("path");
-    const fs = require("fs");
-    const adapter = this.app.vault.adapter as any;
+    const adapter = this.app.vault.adapter as FileSystemAdapter;
     const vaultBase = adapter.basePath as string;
     const pluginDir = this.plugin.manifest.dir || "";
     const dir = path.join(vaultBase, pluginDir, "templates");
@@ -37,8 +39,6 @@ export class TemplateStore {
 
   /** 디렉토리를 스캔해 .hwpx 파일 목록을 반환 */
   list(): TemplateInfo[] {
-    const fs = require("fs");
-    const path = require("path");
     const dir = this.getTemplatesDir();
     let files: string[];
     try {
@@ -78,8 +78,6 @@ export class TemplateStore {
    * 이름 충돌 시 타임스탬프 suffix를 붙인다. (`_import_YYYYMMDD_HHMMSS`)
    */
   importFromBytes(bytes: ArrayBuffer | Uint8Array, originalName: string): TemplateInfo {
-    const fs = require("fs");
-    const path = require("path");
     const dir = this.getTemplatesDir();
     const stem = this.sanitizeId(originalName.replace(/\.(hwpx|hwp)$/i, ""));
     let filename = `${stem}.hwpx`;
@@ -98,8 +96,6 @@ export class TemplateStore {
    * md2hwpx-gui의 copy-on-edit 패턴을 따른다.
    */
   copyForEdit(id: string): TemplateInfo | null {
-    const fs = require("fs");
-    const path = require("path");
     const src = this.get(id);
     if (!src) return null;
     const dir = this.getTemplatesDir();
@@ -111,7 +107,6 @@ export class TemplateStore {
 
   /** 삭제 */
   delete(id: string): boolean {
-    const fs = require("fs");
     const info = this.get(id);
     if (!info) return false;
     try {
@@ -124,8 +119,6 @@ export class TemplateStore {
 
   /** 이름 변경 */
   rename(id: string, newName: string): TemplateInfo | null {
-    const fs = require("fs");
-    const path = require("path");
     const info = this.get(id);
     if (!info) return null;
     const newId = this.sanitizeId(newName);
@@ -142,7 +135,6 @@ export class TemplateStore {
     const info = this.get(id);
     if (!info) return false;
     try {
-      const { shell } = require("electron");
       shell.openPath(info.absPath);
       return true;
     } catch {
@@ -155,7 +147,6 @@ export class TemplateStore {
     const info = this.get(id);
     if (!info) return false;
     try {
-      const { shell } = require("electron");
       shell.showItemInFolder(info.absPath);
       return true;
     } catch {
@@ -172,9 +163,7 @@ export class TemplateStore {
    * 반환값: 실제로 쓰여진 파일 수.
    */
   async seedSampleTemplates(options: { force?: boolean } = {}): Promise<number> {
-    const samples = await createAllSampleTemplates();
-    const fs = require("fs");
-    const path = require("path");
+    const samples = createAllSampleTemplates();
     const dir = this.getTemplatesDir();
     let written = 0;
     for (const s of samples) {
@@ -192,11 +181,9 @@ export class TemplateStore {
    * v1 샘플은 매우 작은 크기(< 20KB)에 특정 이름을 가지므로 안전하게 식별 가능.
    * 사용자가 같은 이름으로 편집·확장했다면 파일이 크므로 건드리지 않는다.
    */
-  async pruneLegacySampleTemplates(): Promise<string[]> {
+  pruneLegacySampleTemplates(): string[] {
     const LEGACY_V1_NAMES = ["기본 보고서", "공문 양식", "학술 논문", "회의록"];
     const SAFETY_MAX_BYTES = 20 * 1024; // 20KB 이상이면 사용자가 손댄 것으로 간주
-    const fs = require("fs");
-    const path = require("path");
     const dir = this.getTemplatesDir();
     const removed: string[] = [];
 
@@ -223,7 +210,6 @@ export class TemplateStore {
   /** 템플릿 폴더 자체를 연다 */
   openTemplatesFolder(): boolean {
     try {
-      const { shell } = require("electron");
       shell.openPath(this.getTemplatesDir());
       return true;
     } catch {
@@ -235,10 +221,9 @@ export class TemplateStore {
    * 템플릿 XML에서 플레이스홀더(`{{NAME}}`) 추출.
    * md2hwpx-gui의 진단 기능 포팅. 읽기 실패 시 빈 배열.
    */
-  async extractPlaceholders(id: string): Promise<string[]> {
+  extractPlaceholders(id: string): string[] {
     const info = this.get(id);
     if (!info) return [];
-    const fs = require("fs");
     let bytes: Uint8Array;
     try { bytes = new Uint8Array(fs.readFileSync(info.absPath)); } catch { return []; }
     // Contents/section0.xml 내용을 찾아 정규식 실행

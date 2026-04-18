@@ -112,21 +112,15 @@ export class TemplateManager {
     const activeId = this.plugin.settings.activeTemplateId;
 
     if (templates.length === 0) {
-      const empty = listEl.createDiv();
-      empty.style.padding = "8px";
-      empty.style.textAlign = "center";
-      empty.style.border = "1px dashed var(--background-modifier-border)";
-      empty.style.borderRadius = "4px";
-      empty.style.background = "var(--background-secondary)";
-      const msg = empty.createEl("div", { text: "등록된 템플릿이 없습니다." });
-      msg.style.color = "var(--text-muted)";
-      msg.style.marginBottom = "6px";
-      msg.style.fontSize = "12px";
+      const empty = listEl.createDiv("hwpx-template-empty");
+      empty.createEl("div", {
+        text: "등록된 템플릿이 없습니다.",
+        cls: "hwpx-template-empty-msg",
+      });
       const quickBtn = empty.createEl("button", {
         text: "📋 샘플 템플릿 3종 받기",
-        cls: "hwpx-action-btn",
+        cls: "hwpx-action-btn hwpx-template-quick-btn",
       });
-      quickBtn.style.fontSize = "11px";
       quickBtn.addEventListener("click", () => this.seedSamples());
       return;
     }
@@ -146,9 +140,7 @@ export class TemplateManager {
 
       // 활성 템플릿이면 폰트 정보 표시
       if (isActive) {
-        const metaLine = item.createDiv("hwpx-label");
-        metaLine.style.fontSize = "11px";
-        metaLine.style.marginTop = "2px";
+        const metaLine = item.createDiv("hwpx-label hwpx-template-meta-line");
         metaLine.setText("📝 템플릿 정보 읽는 중...");
         readTemplate(t.absPath).then((meta) => {
           if (meta.bodyFontHangul) {
@@ -175,22 +167,19 @@ export class TemplateManager {
         cls: "hwpx-preset-action-btn",
         attr: { title: isActive ? "템플릿 사용 해제" : "이 템플릿을 기본으로 설정" },
       });
-      applyBtn.addEventListener("click", async () => {
+      applyBtn.addEventListener("click", () => { void (async () => {
         if (isActive) {
-          // 해제 — activeTemplateId 만 null 로. settings 값은 유지 (사용자 편집 보존)
           this.plugin.settings.activeTemplateId = null;
           await this.plugin.saveSettings();
           new Notice("템플릿 해제됨 (설정값은 유지)");
         } else {
-          // 적용 — activeTemplateId 설정 + 템플릿 스타일을 settings 에 복사
           this.plugin.settings.activeTemplateId = t.id;
           await this.onApplyTemplate(t.id);
           await this.plugin.saveSettings();
-          // Notice 는 onApplyTemplate 안에서 이미 띄움
         }
         this.rebuildList(listEl);
         this.onChange();
-      });
+      })(); });
 
       // 한컴에서 복제 편집 (copy-on-edit)
       const editBtn = btns.createEl("button", {
@@ -213,12 +202,11 @@ export class TemplateManager {
       const renameBtn = btns.createEl("button", {
         text: "✏️", cls: "hwpx-preset-action-btn", attr: { title: "이름 변경" },
       });
-      renameBtn.addEventListener("click", async () => {
+      renameBtn.addEventListener("click", () => { void (async () => {
         const newName = await promptText(this.plugin.app, "이름 변경", t.name, "새 이름 (확장자 제외)");
         if (!newName || newName === t.name) return;
         const updated = this.store.rename(t.id, newName);
         if (!updated) { new Notice("❌ 이름 변경 실패 (중복 또는 잘못된 이름)"); return; }
-        // active였다면 새 ID로 따라가기
         if (activeId === t.id) {
           this.plugin.settings.activeTemplateId = updated.id;
           await this.plugin.saveSettings();
@@ -226,15 +214,15 @@ export class TemplateManager {
         this.rebuildList(listEl);
         this.onChange();
         new Notice(`✏️ "${t.name}" → "${updated.name}"`);
-      });
+      })(); });
 
       // 플레이스홀더 확인
       const phBtn = btns.createEl("button", {
         text: "🔍", cls: "hwpx-preset-action-btn",
         attr: { title: "플레이스홀더 검사 ({{H1}} 등)" },
       });
-      phBtn.addEventListener("click", async () => {
-        const phs = await this.store.extractPlaceholders(t.id);
+      phBtn.addEventListener("click", () => {
+        const phs = this.store.extractPlaceholders(t.id);
         if (phs.length === 0) {
           new Notice("플레이스홀더 없음");
         } else {
@@ -256,7 +244,7 @@ export class TemplateManager {
         text: "🗑", cls: "hwpx-preset-action-btn hwpx-danger",
         attr: { title: "삭제" },
       });
-      delBtn.addEventListener("click", async () => {
+      delBtn.addEventListener("click", () => { void (async () => {
         const ok = await confirmModal(
           this.plugin.app,
           "삭제 확인",
@@ -276,7 +264,7 @@ export class TemplateManager {
         } else {
           new Notice("❌ 삭제 실패");
         }
-      });
+      })(); });
     }
   }
 
@@ -285,7 +273,7 @@ export class TemplateManager {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".hwpx,.hwp";
-    input.addEventListener("change", async () => {
+    input.addEventListener("change", () => { void (async () => {
       const file = input.files?.[0];
       if (!file) return;
       try {
@@ -299,7 +287,7 @@ export class TemplateManager {
         const msg = e instanceof Error ? e.message : String(e);
         new Notice(`❌ 가져오기 실패: ${msg}`);
       }
-    });
+    })(); });
     input.click();
   }
 

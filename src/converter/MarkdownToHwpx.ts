@@ -28,6 +28,9 @@ import type { Token, Tokens } from "marked";
 
 import type { HwpxWriterSettings } from "../settings";
 
+/** marked token 에 공식 타입이 없는 확장 프로퍼티. */
+interface TokenExt { raw?: string; text?: string; tokens?: Token[]; }
+
 export interface ConvertOptions {
   /** 참조 템플릿 HWPX 파일의 OS 절대 경로. 지정 시 템플릿 폰트를 승계한다. */
   templatePath?: string | null;
@@ -242,7 +245,7 @@ function emitToken(tok: Token, ctx: EmitContext): void {
   }
 
   // 알 수 없는 토큰 — raw 를 문단으로
-  const raw = (tok as any).raw;
+  const raw = (tok as TokenExt).raw;
   if (typeof raw === "string" && raw.trim()) {
     const p = new Paragraph();
     p.addRun(raw.trim(), ctx.styles.bodyCharPrId);
@@ -350,7 +353,7 @@ function emitListItem(
     if (!firstEmitted && (child.type === "text" || child.type === "paragraph")) {
       const p = new Paragraph(pp);
       p.addRun(prefix, listCpId);
-      const inlineTokens = (child as any).tokens || [{ type: "text", text: (child as any).text }];
+      const inlineTokens = (child as TokenExt).tokens || [{ type: "text", text: (child as TokenExt).text || "" }];
       addInlineTokens(p, inlineTokens, ctx.styles, listCpId);
       ctx.sec.addParagraph(p);
       firstEmitted = true;
@@ -595,7 +598,7 @@ function emitInline(p: Paragraph, tok: Token, styles: any, baseCharPrId: number)
     }
     default: {
       // 알 수 없는 인라인 — raw 로
-      const raw = (tok as any).text ?? (tok as any).raw ?? "";
+      const raw = (tok as TokenExt).text ?? (tok as TokenExt).raw ?? "";
       if (raw) p.addRun(raw, baseCharPrId);
     }
   }
@@ -628,7 +631,7 @@ function extractVisibleText(tokens: Token[] | undefined): string {
   if (!tokens || !tokens.length) return "";
   let out = "";
   for (const t of tokens) {
-    const tt = t as any;
+    const tt = t as TokenExt;
     if (Array.isArray(tt.tokens) && tt.tokens.length > 0) {
       out += extractVisibleText(tt.tokens);
     } else if (typeof tt.text === "string") {

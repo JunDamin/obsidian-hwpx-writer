@@ -16,9 +16,9 @@ export function buildPageSettingsPanel(el: HTMLElement, plugin: HwpxWriterPlugin
       text: size,
       cls: `hwpx-toggle-btn ${s.paperSize === size ? "active" : ""}`,
     });
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       plugin.settings.paperSize = size;
-      await plugin.saveSettings();
+      void plugin.saveSettings();
       paperBtns.querySelectorAll("button").forEach((b) => b.removeClass("active"));
       btn.addClass("active");
     });
@@ -33,9 +33,9 @@ export function buildPageSettingsPanel(el: HTMLElement, plugin: HwpxWriterPlugin
       text: label,
       cls: `hwpx-toggle-btn ${s.landscape === val ? "active" : ""}`,
     });
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       plugin.settings.landscape = val;
-      await plugin.saveSettings();
+      void plugin.saveSettings();
       dirBtns.querySelectorAll("button").forEach((b) => b.removeClass("active"));
       btn.addClass("active");
     });
@@ -53,11 +53,11 @@ export function buildPageSettingsPanel(el: HTMLElement, plugin: HwpxWriterPlugin
     const input = cell.createEl("input", {
       type: "number",
       cls: "hwpx-num-input",
-      value: String((s as any)[key]),
+      value: String(s[key]),
     });
-    input.addEventListener("change", async () => {
-      (plugin.settings as any)[key] = Number(input.value) || 15;
-      await plugin.saveSettings();
+    input.addEventListener("change", () => {
+      plugin.settings[key] = Number(input.value) || 15;
+      void plugin.saveSettings();
     });
   }
 }

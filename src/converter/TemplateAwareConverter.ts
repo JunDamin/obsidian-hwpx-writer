@@ -22,6 +22,9 @@ import type { Token, Tokens } from "marked";
 import type { HwpxWriterSettings, TableBorderDesign, BorderLineSpec } from "../settings";
 import { defaultBorderDesign } from "../settings";
 
+/** marked token 에 공식 타입이 없는 확장 프로퍼티. */
+interface TokenExt { raw?: string; text?: string; tokens?: Token[]; latex?: string; }
+
 // ══ 공개 API ═════════════════════════════════════════════════════════════
 
 /**
@@ -193,13 +196,13 @@ function emitToken(tok: Token, ctx: EmitContext): void {
   if (t === "mathBlock") {
     // 수식은 일단 텍스트로 (향후 확장: equation 요소)
     const ref = ctx.meta.placeholderStyles.paragraphs.get("BODY") ?? defaultParaRef();
-    emitSimpleParagraph(ctx, ref, (tok as any).latex ?? "");
+    emitSimpleParagraph(ctx, ref, (tok as TokenExt).latex ?? "");
     ctx.atPageStart = false;
     return;
   }
 
   // 모르는 토큰 — raw 텍스트 fallback
-  const raw = (tok as any).raw;
+  const raw = (tok as TokenExt).raw;
   if (typeof raw === "string" && raw.trim()) {
     const ref = ctx.meta.placeholderStyles.paragraphs.get("BODY") ?? defaultParaRef();
     emitSimpleParagraph(ctx, ref, raw.trim());
@@ -266,7 +269,7 @@ function emitListItem(
   let firstEmitted = false;
   for (const child of tokens) {
     if (!firstEmitted && (child.type === "text" || child.type === "paragraph")) {
-      const inline = (child as any).tokens || [{ type: "text", text: (child as any).text }];
+      const inline = (child as TokenExt).tokens || [{ type: "text", text: (child as TokenExt).text || "" }];
       const runs = renderInlineWithPrefix(prefix, inline, ref.charPrId, ctx.meta);
       ctx.parts.push(
         `<hp:p paraPrIDRef="${ref.paraPrId}" styleIDRef="${ref.styleId}" ` +
@@ -424,7 +427,7 @@ function renderInlineToken(tok: Token, baseCharPrId: number, meta: TemplateMetad
     case "del": {
       // 굵게/기울임/취소선은 템플릿에 해당 스타일이 없으면 base 로 fallback
       // (향후: BOLD/ITALIC/STRIKE placeholder 지원)
-      const t = tok as any;
+      const t = tok as TokenExt;
       if (t.tokens?.length) {
         return t.tokens.map((c: Token) => renderInlineToken(c, baseCharPrId, meta)).join("");
       }
@@ -449,7 +452,7 @@ function renderInlineToken(tok: Token, baseCharPrId: number, meta: TemplateMetad
       return `<hp:run charPrIDRef="${baseCharPrId}"><hp:t>${xmlEscape((tok as Tokens.Escape).text)}</hp:t></hp:run>`;
     }
     default: {
-      const raw = (tok as any).text ?? (tok as any).raw ?? "";
+      const raw = (tok as TokenExt).text ?? (tok as TokenExt).raw ?? "";
       return raw
         ? `<hp:run charPrIDRef="${baseCharPrId}"><hp:t>${xmlEscape(raw)}</hp:t></hp:run>`
         : "";

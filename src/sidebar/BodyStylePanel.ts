@@ -16,7 +16,6 @@ export class BodyStylePanel {
   render(el: HTMLElement): void {
     const tabLabels = ["본문", "리스트", "표", "코드"];
     const tabRow = el.createDiv("hwpx-style-tabs");
-    tabRow.style.gridTemplateColumns = "repeat(4, 1fr)";
     const panel = el.createDiv("hwpx-heading-panel");
     const buttons: HTMLButtonElement[] = [];
 
@@ -57,9 +56,11 @@ export class BodyStylePanel {
       const latest = this.plugin.settings;
       const fontName = latest.fontHangul || "맑은 고딕";
       previewText.setText("본문 미리보기 텍스트");
-      previewText.style.fontSize = `${latest.bodyFontSize}pt`;
-      previewText.style.fontWeight = "400";
-      previewText.style.fontFamily = `"${fontName}", sans-serif`;
+      previewText.setCssProps({
+        "--hwpx-preview-font-size": `${latest.bodyFontSize}pt`,
+        "--hwpx-preview-font-weight": "400",
+        "--hwpx-preview-font-family": `"${fontName}", sans-serif`,
+      });
     };
     updatePreview();
 
@@ -70,9 +71,9 @@ export class BodyStylePanel {
       cls: "hwpx-text-input", value: s.fontHangul,
       attr: { placeholder: "맑은 고딕" },
     });
-    hangulInput.addEventListener("change", async () => {
+    hangulInput.addEventListener("change", () => {
       this.plugin.settings.fontHangul = hangulInput.value;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
 
@@ -83,9 +84,9 @@ export class BodyStylePanel {
       cls: "hwpx-text-input", value: s.fontLatin,
       attr: { placeholder: s.fontHangul || "맑은 고딕" },
     });
-    latinInput.addEventListener("change", async () => {
+    latinInput.addEventListener("change", () => {
       this.plugin.settings.fontLatin = latinInput.value;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
 
@@ -95,9 +96,9 @@ export class BodyStylePanel {
     const sizeInput = sizeRow.createEl("input", {
       type: "number", cls: "hwpx-num-input-sm", value: String(s.bodyFontSize),
     });
-    sizeInput.addEventListener("change", async () => {
+    sizeInput.addEventListener("change", () => {
       this.plugin.settings.bodyFontSize = Number(sizeInput.value) || 10;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
     sizeRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
@@ -108,9 +109,9 @@ export class BodyStylePanel {
     const lsInput = lsRow.createEl("input", {
       type: "number", cls: "hwpx-num-input-sm", value: String(s.lineSpacing),
     });
-    lsInput.addEventListener("change", async () => {
+    lsInput.addEventListener("change", () => {
       this.plugin.settings.lineSpacing = Number(lsInput.value) || 160;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
     lsRow.createEl("span", { text: "%", cls: "hwpx-unit" });
@@ -124,9 +125,9 @@ export class BodyStylePanel {
         text: label,
         cls: `hwpx-toggle-btn ${s.bodyAlign === val ? "active" : ""}`,
       });
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", () => {
         this.plugin.settings.bodyAlign = val;
-        await this.plugin.saveSettings();
+        void this.plugin.saveSettings();
         alignBtns.querySelectorAll("button").forEach(b => b.removeClass("active"));
         btn.addClass("active");
         updatePreview();
@@ -158,7 +159,6 @@ export class BodyStylePanel {
 
     // 레벨 탭 L1~L4
     const tabRow = panel.createDiv("hwpx-style-tabs");
-    tabRow.style.gridTemplateColumns = "repeat(4, 1fr)";
     const levelPanel = panel.createDiv("hwpx-heading-panel");
     const buttons: HTMLButtonElement[] = [];
 
@@ -193,8 +193,10 @@ export class BodyStylePanel {
       const fontName = latest.fontName || this.plugin.settings.fontHangul || "맑은 고딕";
       const size = latest.fontSize || this.plugin.settings.bodyFontSize;
       previewText.setText(`${latest.bulletChar} 리스트 항목`);
-      previewText.style.fontSize = `${size}pt`;
-      previewText.style.fontFamily = `"${fontName}", sans-serif`;
+      previewText.setCssProps({
+        "--hwpx-preview-font-size": `${size}pt`,
+        "--hwpx-preview-font-family": `"${fontName}", sans-serif`,
+      });
     };
     updatePreview();
 
@@ -204,9 +206,9 @@ export class BodyStylePanel {
     const bulletInput = bulletRow.createEl("input", {
       cls: "hwpx-text-input", value: ls.bulletChar,
     });
-    bulletInput.addEventListener("change", async () => {
+    bulletInput.addEventListener("change", () => {
       this.plugin.settings.listLevelStyles[li].bulletChar = bulletInput.value;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
 
@@ -218,9 +220,9 @@ export class BodyStylePanel {
       value: ls.fontName || "",
       attr: { placeholder: `(본문: ${s.fontHangul || "맑은 고딕"})` },
     });
-    fontInput.addEventListener("change", async () => {
+    fontInput.addEventListener("change", () => {
       this.plugin.settings.listLevelStyles[li].fontName = fontInput.value;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
 
@@ -231,9 +233,9 @@ export class BodyStylePanel {
       type: "number", cls: "hwpx-num-input-sm",
       value: String(ls.fontSize),
     });
-    sizeInput.addEventListener("change", async () => {
+    sizeInput.addEventListener("change", () => {
       this.plugin.settings.listLevelStyles[li].fontSize = Number(sizeInput.value) || 0;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       updatePreview();
     });
     sizeRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
@@ -252,10 +254,10 @@ export class BodyStylePanel {
     const hdrBoldBtn = hdrRow.createEl("button", {
       text: "B", cls: `hwpx-toggle-btn hwpx-bold-btn ${s.tableHeaderBold ? "active" : ""}`,
     });
-    hdrBoldBtn.addEventListener("click", async () => {
+    hdrBoldBtn.addEventListener("click", () => {
       this.plugin.settings.tableHeaderBold = !this.plugin.settings.tableHeaderBold;
       hdrBoldBtn.toggleClass("active", this.plugin.settings.tableHeaderBold);
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
     });
 
     // 본문 크기
@@ -287,9 +289,9 @@ export class BodyStylePanel {
     const fontRow = panel.createDiv("hwpx-setting-row");
     fontRow.createEl("span", { text: "폰트" });
     const fontInput = fontRow.createEl("input", { cls: "hwpx-text-input", value: s.codeFontName });
-    fontInput.addEventListener("change", async () => {
+    fontInput.addEventListener("change", () => {
       this.plugin.settings.codeFontName = fontInput.value;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
     });
 
     const fsRow = panel.createDiv("hwpx-setting-row");

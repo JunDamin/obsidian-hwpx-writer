@@ -10,6 +10,9 @@
  */
 
 import type { App } from "obsidian";
+import { FileSystemAdapter } from "obsidian";
+import * as fs from "fs";
+import * as path from "path";
 import { log } from "../logger";
 import { registerMeasureTextWidth } from "./MeasureText";
 
@@ -43,7 +46,7 @@ export class RhwpRenderer {
 
     // 1차 시도: Obsidian resource URL (app://...) 을 통해 fetch
     try {
-      const wasmPath = (this.app.vault.adapter as any).getResourcePath(
+      const wasmPath = (this.app.vault.adapter as FileSystemAdapter).getResourcePath(
         `${this.pluginDir}/rhwp_bg.wasm`
       );
       await rhwp.default({ module_or_path: wasmPath });
@@ -54,9 +57,7 @@ export class RhwpRenderer {
     }
 
     // 2차 폴백: Node.js fs로 직접 읽기 (Electron 환경)
-    const fs = require("fs");
-    const path = require("path");
-    const basePath = (this.app.vault.adapter as any).basePath;
+    const basePath = (this.app.vault.adapter as FileSystemAdapter).basePath;
     const wasmFile = path.join(basePath, this.pluginDir, "rhwp_bg.wasm");
     const wasmBuffer = fs.readFileSync(wasmFile);
     rhwp.initSync({ module: wasmBuffer });

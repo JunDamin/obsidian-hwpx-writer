@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { shell } from "electron";
 import { log } from "./logger";
 import type HwpxWriterPlugin from "./main";
 import { detectEnvironment, EnvironmentInfo } from "./environment";
@@ -60,7 +61,7 @@ export class HwpxSidebarView extends ItemView {
     this.buildUI(container);
   }
 
-  async onClose(): Promise<void> {
+  onClose(): void {
     this.preview?.dispose();
   }
 
@@ -78,7 +79,7 @@ export class HwpxSidebarView extends ItemView {
       text: "📄 HWPX로 내보내기",
       cls: "hwpx-export-btn",
     });
-    exportBtn.addEventListener("click", async () => {
+    exportBtn.addEventListener("click", () => { void (async () => {
       exportBtn.disabled = true;
       exportBtn.setText("변환 중...");
       try {
@@ -87,20 +88,18 @@ export class HwpxSidebarView extends ItemView {
         exportBtn.disabled = false;
         exportBtn.setText("📄 HWPX로 내보내기");
       }
-    });
+    })(); });
 
     // 내보내기 결과 영역
     this.resultEl = convertSection.createDiv("hwpx-result-section");
-    this.resultEl.style.display = "none";
+    this.resultEl.addClass("hwpx-hidden");
 
     // ── 🎨 프리셋 통합 섹션 (선택 + 관리) ──
     this.buildCollapsibleSection(container, "🎨 프리셋", (el) => {
       // 선택 드롭다운 + 저장/내보내기/불러오기/삭제
       this.presetManager.renderSelector(el);
       // 구분선
-      const hr = el.createDiv();
-      hr.style.borderTop = "1px solid var(--background-modifier-border)";
-      hr.style.margin = "8px 0";
+      el.createDiv("hwpx-divider");
       // 상세 관리 (프리셋 목록 + 각각에 대한 액션)
       this.presetManager.renderDetailedManager(el);
     });
@@ -110,15 +109,9 @@ export class HwpxSidebarView extends ItemView {
       // 템플릿 선택 드롭다운 + 값 불러오기 버튼
       this.renderTemplateDropdown(el);
       // 구분선
-      const hr = el.createDiv();
-      hr.style.borderTop = "1px solid var(--background-modifier-border)";
-      hr.style.margin = "8px 0";
+      el.createDiv("hwpx-divider");
       // 설명 힌트
-      const hint = el.createDiv();
-      hint.style.fontSize = "11px";
-      hint.style.color = "var(--text-muted)";
-      hint.style.padding = "0 0 8px";
-      hint.setText(
+      el.createDiv("hwpx-hint").setText(
         "💡 '적용' 버튼을 누르면 템플릿 스타일이 설정값으로 복사됩니다. " +
         "'본문 스타일' 등 설정에서 값이 바뀐 걸 확인할 수 있습니다.",
       );
@@ -146,16 +139,16 @@ export class HwpxSidebarView extends ItemView {
     templateRow.createEl("span", { text: "활성 템플릿:" });
     const templateSelect = templateRow.createEl("select", {
       cls: "hwpx-template-select",
-    }) as HTMLSelectElement;
+    });
     const templates = this.templateManager.list();
     templateSelect.createEl("option", { text: "— 사용 안 함 —", value: "" });
     for (const t of templates) {
       const opt = templateSelect.createEl("option", {
         text: t.name, value: t.id,
-      }) as HTMLOptionElement;
+      });
       if (this.plugin.settings.activeTemplateId === t.id) opt.selected = true;
     }
-    templateSelect.addEventListener("change", async () => {
+    templateSelect.addEventListener("change", () => { void (async () => {
       const val = templateSelect.value;
       const newId = val || null;
       log.info("Template dropdown changed →", newId ?? "(none)");
@@ -163,24 +156,16 @@ export class HwpxSidebarView extends ItemView {
       if (newId) await this.applyTemplateToSettings(newId);
       await this.plugin.saveSettings();
       this.rebuildUI();
-    });
+    })(); });
 
     // 📥 값 불러오기 (현재 템플릿 재적용)
     if (this.plugin.settings.activeTemplateId) {
       const reapplyBtn = templateRow.createEl("button", {
         text: "📥 다시 불러오기",
+        cls: "hwpx-reapply-btn",
         attr: { title: "현재 템플릿의 스타일을 설정에 다시 복사" },
       });
-      reapplyBtn.style.padding = "4px 10px";
-      reapplyBtn.style.marginLeft = "6px";
-      reapplyBtn.style.background = "var(--interactive-accent)";
-      reapplyBtn.style.color = "var(--text-on-accent)";
-      reapplyBtn.style.border = "none";
-      reapplyBtn.style.borderRadius = "3px";
-      reapplyBtn.style.cursor = "pointer";
-      reapplyBtn.style.fontSize = "12px";
-      reapplyBtn.style.fontWeight = "bold";
-      reapplyBtn.addEventListener("click", async () => {
+      reapplyBtn.addEventListener("click", () => { void (async () => {
         log.info("📥 REAPPLY BUTTON CLICKED");
         new Notice("📥 템플릿 값 불러오는 중...", 2000);
         try {
@@ -193,7 +178,7 @@ export class HwpxSidebarView extends ItemView {
           log.error("Re-apply failed:", e);
           new Notice(`❌ 실패: ${e instanceof Error ? e.message : e}`);
         }
-      });
+      })(); });
     }
   }
 
@@ -235,12 +220,11 @@ export class HwpxSidebarView extends ItemView {
 
       // 변경 전/후 비교 로그 — 무엇이 바뀌었는지 명확히
       for (const key of Object.keys(patch) as (keyof typeof patch)[]) {
-        const before = (this.plugin.settings as any)[key];
-        const after = (patch as any)[key];
-        // 복잡한 객체는 간결히
-        const fmt = (v: any) => {
+        const before = (this.plugin.settings as Record<string, unknown>)[key as string];
+        const after = patch[key];
+        const fmt = (v: unknown) => {
           if (v === undefined) return "(undefined)";
-          if (typeof v === "object") return `(object, ${Object.keys(v).length} keys)`;
+          if (v !== null && typeof v === "object") return `(object, ${Object.keys(v).length} keys)`;
           return String(v);
         };
         log.info(`    ${String(key)}: ${fmt(before)} → ${fmt(after)}`);
@@ -272,13 +256,13 @@ export class HwpxSidebarView extends ItemView {
 
     const content = section.createDiv("hwpx-collapsible-content");
     const wasExpanded = this.expandedSections.has(title);
-    content.style.display = wasExpanded ? "block" : "none";
+    content.toggleClass("hwpx-hidden", !wasExpanded);
     arrow.setText(wasExpanded ? "▼" : "▶");
     buildContent(content);
 
     header.addEventListener("click", () => {
-      const isOpen = content.style.display !== "none";
-      content.style.display = isOpen ? "none" : "block";
+      const isOpen = !content.hasClass("hwpx-hidden");
+      content.toggleClass("hwpx-hidden", isOpen);
       arrow.setText(isOpen ? "▶" : "▼");
       if (isOpen) {
         this.expandedSections.delete(title);
@@ -301,7 +285,7 @@ export class HwpxSidebarView extends ItemView {
   showExportResult(fullPath: string, vaultPath: string): void {
     if (!this.resultEl) return;
     this.resultEl.empty();
-    this.resultEl.style.display = "block";
+    this.resultEl.removeClass("hwpx-hidden");
 
     const info = this.resultEl.createDiv("hwpx-result-info");
     info.createEl("span", { text: `✅ ${vaultPath}`, cls: "hwpx-result-path" });
@@ -314,7 +298,6 @@ export class HwpxSidebarView extends ItemView {
     });
     openFileBtn.addEventListener("click", () => {
       try {
-        const { shell } = require("electron");
         shell.openPath(fullPath);
       } catch {
         new Notice("파일 열기 실패");
@@ -327,7 +310,6 @@ export class HwpxSidebarView extends ItemView {
     });
     openFolderBtn.addEventListener("click", () => {
       try {
-        const { shell } = require("electron");
         shell.showItemInFolder(fullPath);
       } catch {
         new Notice("폴더 열기 실패");

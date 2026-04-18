@@ -92,9 +92,9 @@ export class PreviewPanel {
         text: "🔄 미리보기 다시 켜기",
         cls: "hwpx-preview-btn",
       });
-      enableBtn.addEventListener("click", async () => {
+      enableBtn.addEventListener("click", () => {
         this.plugin.settings.showPreview = true;
-        await this.plugin.saveSettings();
+        void this.plugin.saveSettings();
         if (this.env) this.env.renderFailCount = 0;
         this.onRebuildUI();
       });
@@ -163,8 +163,7 @@ export class PreviewPanel {
 
       const svgEl = this.canvasEl.querySelector("svg");
       if (svgEl) {
-        (svgEl as SVGElement).style.width = "100%";
-        (svgEl as SVGElement).style.height = "auto";
+        svgEl.setAttribute("class", "hwpx-preview-svg");
       }
 
       if (this.env) this.env.renderFailCount = 0;
@@ -227,16 +226,12 @@ export class PreviewPanel {
     box.createEl("h4", { text: `⚠️ ${title}` });
 
     // export는 정상 작동한다는 안내 (preview 단독 실패임을 명확히)
-    const note = box.createEl("p", {
+    box.createEl("p", {
       text: "ℹ️ HWPX 내보내기(export) 기능은 정상 작동합니다. 미리보기만 실패했습니다.",
+      cls: "hwpx-preview-note",
     });
-    note.style.fontSize = "11px";
-    note.style.color = "var(--text-accent)";
 
-    const msg = box.createEl("p", { text: detail });
-    msg.style.fontSize = "10px";
-    msg.style.color = "var(--text-muted)";
-    msg.style.wordBreak = "break-all";
+    box.createEl("p", { text: detail, cls: "hwpx-preview-msg" });
 
     // 세션당 1회 Notice — 사이드바를 보고 있지 않아도 알 수 있도록
     if (!this.errorNoticeShown) {
@@ -251,7 +246,7 @@ export class PreviewPanel {
         text: this.env.hancomInstalled ? "🖨️ 한컴에서 열기" : "📄 외부 뷰어로 열기",
         cls: "hwpx-result-btn",
       });
-      openBtn.addEventListener("click", async () => {
+      openBtn.addEventListener("click", () => { void (async () => {
         try {
           if (!this.lastHwpxBytes) {
             const file = this.plugin.findMarkdownFile();
@@ -267,16 +262,16 @@ export class PreviewPanel {
         } catch (e) {
           new Notice(`열기 실패: ${e}`);
         }
-      });
+      })(); });
     }
 
     const retryBtn = btnRow.createEl("button", { text: "🔄 다시 시도", cls: "hwpx-result-btn" });
     retryBtn.addEventListener("click", () => this.refresh());
 
     const disableBtn = btnRow.createEl("button", { text: "🚫 미리보기 끄기", cls: "hwpx-result-btn" });
-    disableBtn.addEventListener("click", async () => {
+    disableBtn.addEventListener("click", () => {
       this.plugin.settings.showPreview = false;
-      await this.plugin.saveSettings();
+      void this.plugin.saveSettings();
       this.onRebuildUI();
       new Notice("미리보기를 껐습니다. 설정에서 다시 켤 수 있습니다.");
     });
@@ -302,9 +297,7 @@ export class PreviewPanel {
 
     // 환경 정보 요약
     if (env) {
-      const detail = box.createEl("p");
-      detail.style.fontSize = "10px";
-      detail.style.color = "var(--text-muted)";
+      const detail = box.createEl("p", { cls: "hwpx-preview-detail" });
       const parts = [
         `플랫폼: ${env.platform}`,
         `WASM: ${env.wasmAvailable ? "있음" : "없음"}`,
