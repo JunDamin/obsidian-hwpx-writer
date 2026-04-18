@@ -2,3 +2,9 @@ node_modules/
 main.js
 *.hwpx
 .env
+.vscode/
+.DS_Store
+
+# 테스트 디버그 아티팩트 (_dump, _inspect 등)
+test/__dump__/
+test/_*.test.ts

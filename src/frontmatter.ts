@@ -123,11 +123,10 @@ export function applyFrontmatterOverrides(
   // preset을 먼저 적용 (다른 오버라이드가 프리셋 값을 덮어쓸 수 있도록)
   if (typeof src.preset === "string" && base.presets?.[src.preset]) {
     const preset = base.presets[src.preset];
-    const { presets, activePreset, templates, ...preserved } = settings;
+    const { presets, activePreset, ...preserved } = settings;
     Object.assign(settings, preserved, preset);
     settings.presets = presets;
     settings.activePreset = src.preset;
-    settings.templates = templates;
     applied.push(`preset=${src.preset}`);
   }
 
@@ -168,7 +167,8 @@ export function applyFrontmatterOverrides(
   setNum("margin-bottom", "marginBottom");
   setNum("margin-header", "marginHeader");
   setNum("margin-footer", "marginFooter");
-  setStr("body-font", "bodyFont");
+  // body-font는 레거시 별칭 — fontHangul에 매핑
+  setStr("body-font", "fontHangul");
   setStr("font-hangul", "fontHangul");
   setStr("font-latin", "fontLatin");
   setNum("body-size", "bodyFontSize");
