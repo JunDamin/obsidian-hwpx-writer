@@ -1,9 +1,9 @@
 {
   "id": "obsidian-hwpx-writer",
   "name": "HWPX Writer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAppVersion": "1.0.0",
-  "description": "Markdown를 HWPX(한글) 문서로 변환합니다. 미리보기, 템플릿, 세부 설정 지원.",
+  "description": "Convert Markdown notes to HWPX (Hancom Office Hangul) documents with live preview, templates, and detailed style controls.",
   "author": "JunDamin",
   "authorUrl": "https://github.com/JunDamin",
   "isDesktopOnly": true
