@@ -1,9 +1,9 @@
 {
   "id": "hwpx-writer",
-  "name": "HWPX Writer",
+  "name": "Hwpx writer",
   "version": "0.2.1",
   "minAppVersion": "1.0.0",
-  "description": "Convert Markdown notes to HWPX (Hancom Office Hangul) documents with live preview, templates, and detailed style controls.",
+  "description": "Convert Markdown notes to hwpx documents with live preview, templates, and detailed style controls.",
   "author": "JunDamin",
   "authorUrl": "https://github.com/JunDamin",
   "isDesktopOnly": true

@@ -4,7 +4,16 @@
 
 import { Notice } from "obsidian";
 import type HwpxWriterPlugin from "../main";
+import type { HwpxWriterSettings } from "../settings";
 import { promptText, confirmModal } from "../ui/prompts";
+
+function stripPresetMeta(settings: HwpxWriterSettings): Partial<HwpxWriterSettings> {
+  const copy: Partial<HwpxWriterSettings> = { ...settings };
+  delete copy.presets;
+  delete copy.activePreset;
+  delete copy.activeTemplateId;
+  return copy;
+}
 
 export class PresetManager {
   constructor(
@@ -32,7 +41,7 @@ export class PresetManager {
     savePresetBtn.addEventListener("click", () => { void (async () => {
       const name = await promptText(this.plugin.app, "프리셋 저장", "", "프리셋 이름");
       if (!name) return;
-      const { presets, activePreset, activeTemplateId, ...settingsToSave } = this.plugin.settings;
+      const settingsToSave = stripPresetMeta(this.plugin.settings);
       this.plugin.settings.presets[name] = { ...settingsToSave };
       this.plugin.settings.activePreset = name;
       await this.plugin.saveSettings();
@@ -107,7 +116,7 @@ export class PresetManager {
     saveBtn.addEventListener("click", () => { void (async () => {
       const name = await promptText(this.plugin.app, "프리셋 저장", "", "프리셋 이름");
       if (!name) return;
-      const { presets, activePreset, activeTemplateId, ...toSave } = this.plugin.settings;
+      const toSave = stripPresetMeta(this.plugin.settings);
       this.plugin.settings.presets[name] = { ...toSave };
       this.plugin.settings.activePreset = name;
       await this.plugin.saveSettings();
@@ -245,7 +254,8 @@ export class PresetManager {
     const preset = this.plugin.settings.presets[name];
     if (!preset) return;
 
-    const { presets, activePreset, activeTemplateId, ...defaults } = { ...this.plugin.settings };
+    const { presets, activeTemplateId } = this.plugin.settings;
+    const defaults = stripPresetMeta(this.plugin.settings);
     Object.assign(this.plugin.settings, defaults, preset);
     this.plugin.settings.presets = presets;
     this.plugin.settings.activeTemplateId = activeTemplateId;

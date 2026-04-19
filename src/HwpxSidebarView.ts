@@ -50,7 +50,7 @@ export class HwpxSidebarView extends ItemView {
   getDisplayText(): string { return "Hwpx writer"; }
   getIcon(): string { return "file-output"; }
 
-  async onOpen(): Promise<void> {
+  onOpen(): Promise<void> {
     const container = this.containerEl.children[1] as HTMLElement;
     container.empty();
     container.addClass("hwpx-sidebar");
@@ -59,6 +59,7 @@ export class HwpxSidebarView extends ItemView {
     log.info("Environment:", this.env);
 
     this.buildUI(container);
+    return Promise.resolve();
   }
 
   onClose(): void {

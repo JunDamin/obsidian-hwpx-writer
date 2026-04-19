@@ -24,6 +24,7 @@ export default [
         args: "none",
         ignoreRestSiblings: true,
       }],
+      "@typescript-eslint/require-await": "warn",
     },
   },
   {
