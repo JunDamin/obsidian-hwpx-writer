@@ -7,7 +7,7 @@ import { XmlWriter } from "./XmlBuilder";
 import { HwpxZipPackager } from "./ZipPackager";
 import {
   CharProperties, ParaProperties, BorderFill, Style,
-  FontFace, Font, SolidFill,
+  FontFace, SolidFill,
   createDefaultFontfaces, createDefaultStyles,
 } from "./Styles";
 import { Section } from "./Section";

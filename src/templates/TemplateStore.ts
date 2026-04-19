@@ -42,7 +42,7 @@ export class TemplateStore {
     const dir = this.getTemplatesDir();
     let files: string[];
     try {
-      files = fs.readdirSync(dir) as string[];
+      files = fs.readdirSync(dir);
     } catch {
       return [];
     }
@@ -135,7 +135,7 @@ export class TemplateStore {
     const info = this.get(id);
     if (!info) return false;
     try {
-      shell.openPath(info.absPath);
+      void shell.openPath(info.absPath);
       return true;
     } catch {
       return false;
@@ -162,7 +162,7 @@ export class TemplateStore {
    * 버전 업그레이드 시 사용한다.
    * 반환값: 실제로 쓰여진 파일 수.
    */
-  async seedSampleTemplates(options: { force?: boolean } = {}): Promise<number> {
+  seedSampleTemplates(options: { force?: boolean } = {}): number {
     const samples = createAllSampleTemplates();
     const dir = this.getTemplatesDir();
     let written = 0;
@@ -210,7 +210,7 @@ export class TemplateStore {
   /** 템플릿 폴더 자체를 연다 */
   openTemplatesFolder(): boolean {
     try {
-      shell.openPath(this.getTemplatesDir());
+      void shell.openPath(this.getTemplatesDir());
       return true;
     } catch {
       return false;

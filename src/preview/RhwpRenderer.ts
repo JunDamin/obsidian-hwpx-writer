@@ -20,9 +20,15 @@ export interface RhwpRenderResult {
   pageCount: number;
 }
 
+interface RhwpDocument {
+  pageCount(): number;
+  renderPageSvg(pageIdx: number): string;
+  free?(): void;
+}
+
 export class RhwpRenderer {
   private initialized = false;
-  private doc: any = null;
+  private doc: RhwpDocument | null = null;
   private _pageCount = 0;
 
   constructor(private app: App, private pluginDir: string) {}

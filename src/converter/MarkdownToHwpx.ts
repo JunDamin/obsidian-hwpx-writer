@@ -17,7 +17,7 @@ import { log } from "../logger";
 import {
   HwpxDocument, Section, Paragraph,
   CharProperties, ParaProperties, BorderFill, BorderLine, SolidFill,
-  Table, Equation, Hyperlink, Footnote,
+  TableCell, Hyperlink,
   Font, FontFace,
   pt, mm,
 } from "../hwpx-core/index";
@@ -161,10 +161,12 @@ export async function convertMarkdownToHwpx(
 
 // ══ 토큰 에미션 ═══════════════════════════════════════════════════════
 
+type RegisteredStyles = ReturnType<typeof registerStyles>;
+
 interface EmitContext {
   doc: HwpxDocument;
   sec: Section;
-  styles: any;
+  styles: RegisteredStyles;
   settings: HwpxWriterSettings;
   /** 페이지 맨 앞 위치 — 이 상태일 때 페이지 나누기/빈 줄/HR 생략 */
   atPageStart: boolean;
@@ -397,7 +399,7 @@ function emitTable(tok: Tokens.Table, ctx: EmitContext): void {
 
   const padH = ctx.settings.tableCellPaddingH ? mm(ctx.settings.tableCellPaddingH) : undefined;
   const padV = ctx.settings.tableCellPaddingV ? mm(ctx.settings.tableCellPaddingV) : undefined;
-  const applyPadding = (cell: any) => {
+  const applyPadding = (cell: TableCell) => {
     if (padH !== undefined) { cell.marginLeft = padH; cell.marginRight = padH; }
     if (padV !== undefined) { cell.marginTop = padV; cell.marginBottom = padV; }
   };
@@ -516,7 +518,7 @@ function insertBlankLines(ctx: EmitContext, n: number, heightPt: number | undefi
 function addInlineTokens(
   p: Paragraph,
   tokens: Token[],
-  styles: any,
+  styles: RegisteredStyles,
   baseCharPrId: number,
 ): void {
   if (!tokens.length) {
@@ -528,7 +530,7 @@ function addInlineTokens(
   }
 }
 
-function emitInline(p: Paragraph, tok: Token, styles: any, baseCharPrId: number): void {
+function emitInline(p: Paragraph, tok: Token, styles: RegisteredStyles, baseCharPrId: number): void {
   switch (tok.type) {
     case "text": {
       const tt = tok as Tokens.Text;
@@ -721,115 +723,6 @@ export function computeAutoColWidths(tok: Tokens.Table, totalWidth: number): num
   return result;
 }
 
-// ── 인라인 서식 파싱 ──
-
-function addFormattedRuns(p: Paragraph, text: string, styles: any) {
-  addFormattedRunsWithBase(p, text, styles, styles.bodyCharPrId);
-}
-
-function addFormattedRunsWithBase(p: Paragraph, text: string, styles: any, baseCharPrId: number) {
-  // 간단한 인라인 서식 파서
-  // **bold**, *italic*, ~~strike~~, `code`, [link](url)
-  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|~~(.+?)~~|`(.+?)`|\[(.+?)\]\((.+?)\))/g;
-
-  let lastIndex = 0;
-  let match;
-
-  while ((match = regex.exec(text)) !== null) {
-    // 매치 전 텍스트
-    if (match.index > lastIndex) {
-      p.addRun(text.slice(lastIndex, match.index), baseCharPrId);
-    }
-
-    if (match[2]) {
-      // **bold**
-      p.addRun(match[2], styles.boldCharPrId);
-    } else if (match[3]) {
-      // *italic*
-      p.addRun(match[3], styles.italicCharPrId);
-    } else if (match[4]) {
-      // ~~strike~~
-      p.addRun(match[4], styles.strikeCharPrId);
-    } else if (match[5]) {
-      // `code`
-      p.addRun(match[5], styles.codeCharPrId);
-    } else if (match[6] && match[7]) {
-      // [text](url)
-      p.addField(new Hyperlink(match[7], match[6]));
-    }
-
-    lastIndex = match.index + match[0].length;
-  }
-
-  // 나머지 텍스트
-  if (lastIndex < text.length) {
-    p.addRun(text.slice(lastIndex), baseCharPrId);
-  }
-
-  // 아무것도 없으면 빈 런
-  if (lastIndex === 0 && text.length === 0) {
-    p.addRun("", baseCharPrId);
-  }
-}
-
-// ── 표 빌더 ──
-
-function buildTable(
-  lines: string[],
-  sec: Section,
-  styles: any,
-  doc: HwpxDocument,
-  settings: HwpxWriterSettings,
-) {
-  // 구분선(---|---) 제거
-  const dataLines = lines.filter(l => !/^\|?[\s:]*-+/.test(l));
-  if (dataLines.length === 0) return;
-
-  const parseRow = (line: string): string[] =>
-    line.split("|").map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length);
-
-  const rows = dataLines.map(parseRow);
-  const rowCount = rows.length;
-  const colCount = rows[0]?.length || 1;
-
-  // tableRepeatHeader 설정 반영
-  const tbl = sec.addTable({
-    rows: rowCount, cols: colCount,
-    repeatHeader: !!settings.tableRepeatHeader,
-  });
-
-  // 셀 패딩 (mm → HWPUNIT). 설정 없으면 hwpx-core 기본값 사용.
-  const padH = settings.tableCellPaddingH ? mm(settings.tableCellPaddingH) : undefined;
-  const padV = settings.tableCellPaddingV ? mm(settings.tableCellPaddingV) : undefined;
-  const applyPadding = (cell: any) => {
-    if (padH !== undefined) { cell.marginLeft = padH; cell.marginRight = padH; }
-    if (padV !== undefined) { cell.marginTop = padV; cell.marginBottom = padV; }
-  };
-
-  // 머리행 — tableHeaderAlign 반영
-  if (rowCount > 0) {
-    tbl.setHeaderRow(rows[0], {
-      charPrId: styles.boldCharPrId,
-      paraPrId: styles.headerParaPrId,
-      headerBorderFillId: styles.headerBfId,
-    });
-    // 머리행 셀에도 패딩 적용
-    for (let c = 0; c < colCount; c++) {
-      applyPadding(tbl.getCell(0, c));
-    }
-  }
-
-  // 본문행
-  for (let r = 1; r < rowCount; r++) {
-    for (let c = 0; c < colCount; c++) {
-      const text = rows[r]?.[c] || "";
-      const cell = tbl.setCell(r, c, text, styles.bodyCharPrId);
-      cell.borderFillId = styles.bodyBfId;
-      applyPadding(cell);
-    }
-  }
-}
-
 // ── 유틸리티 ──
 
 function registerStyles(
@@ -862,14 +755,6 @@ function registerStyles(
     height: pt(settings.bodyFontSize),
     ...bodyRefs,
   }));
-  const bodyParaPrId = settings.bodyIndent || settings.bodySpacingBefore || settings.bodySpacingAfter || settings.bodyAlign !== "JUSTIFY"
-    ? doc.addParaProperty(new ParaProperties({
-        indent: mm(settings.bodyIndent || 0),
-        spacingBefore: mm(settings.bodySpacingBefore || 0),
-        spacingAfter: mm(settings.bodySpacingAfter || 0),
-        alignHorizontal: settings.bodyAlign || "JUSTIFY",
-      }))
-    : 0;
   const headingCharPrIds: number[] = [];
   const headingParaPrIds: number[] = [];
   const headingParaPrNoBrIds: number[] = [];

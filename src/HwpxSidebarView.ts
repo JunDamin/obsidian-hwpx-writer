@@ -47,7 +47,7 @@ export class HwpxSidebarView extends ItemView {
   }
 
   getViewType(): string { return VIEW_TYPE_HWPX; }
-  getDisplayText(): string { return "HWPX Writer"; }
+  getDisplayText(): string { return "Hwpx writer"; }
   getIcon(): string { return "file-output"; }
 
   async onOpen(): Promise<void> {
@@ -55,7 +55,7 @@ export class HwpxSidebarView extends ItemView {
     container.empty();
     container.addClass("hwpx-sidebar");
 
-    this.env = await detectEnvironment(this.app, this.plugin.manifest.dir || "");
+    this.env = detectEnvironment(this.app, this.plugin.manifest.dir || "");
     log.info("Environment:", this.env);
 
     this.buildUI(container);
@@ -76,7 +76,7 @@ export class HwpxSidebarView extends ItemView {
 
     // 내보내기 버튼
     const exportBtn = convertSection.createEl("button", {
-      text: "📄 HWPX로 내보내기",
+      text: "📄 Hwpx로 내보내기",
       cls: "hwpx-export-btn",
     });
     exportBtn.addEventListener("click", () => { void (async () => {
@@ -86,7 +86,7 @@ export class HwpxSidebarView extends ItemView {
         await this.plugin.exportCurrentFile();
       } finally {
         exportBtn.disabled = false;
-        exportBtn.setText("📄 HWPX로 내보내기");
+        exportBtn.setText("📄 Hwpx로 내보내기");
       }
     })(); });
 
@@ -222,10 +222,13 @@ export class HwpxSidebarView extends ItemView {
       for (const key of Object.keys(patch) as (keyof typeof patch)[]) {
         const before = (this.plugin.settings as Record<string, unknown>)[key as string];
         const after = patch[key];
-        const fmt = (v: unknown) => {
+        const fmt = (v: unknown): string => {
           if (v === undefined) return "(undefined)";
-          if (v !== null && typeof v === "object") return `(object, ${Object.keys(v).length} keys)`;
-          return String(v);
+          if (v === null) return "null";
+          if (typeof v === "object") return `(object, ${Object.keys(v).length} keys)`;
+          if (typeof v === "string") return v;
+          if (typeof v === "number" || typeof v === "boolean") return String(v);
+          return "(unknown)";
         };
         log.info(`    ${String(key)}: ${fmt(before)} → ${fmt(after)}`);
       }
@@ -298,7 +301,7 @@ export class HwpxSidebarView extends ItemView {
     });
     openFileBtn.addEventListener("click", () => {
       try {
-        shell.openPath(fullPath);
+        void shell.openPath(fullPath);
       } catch {
         new Notice("파일 열기 실패");
       }

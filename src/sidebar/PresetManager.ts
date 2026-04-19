@@ -75,7 +75,7 @@ export class PresetManager {
           await this.plugin.saveSettings();
           this.refreshDropdown(presetSelect);
           new Notice(`📥 프리셋 "${name}" 불러오기 완료`);
-        } catch (e) {
+        } catch {
           new Notice("❌ 잘못된 프리셋 파일");
         }
       })(); });

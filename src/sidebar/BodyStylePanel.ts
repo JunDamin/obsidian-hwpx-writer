@@ -101,7 +101,7 @@ export class BodyStylePanel {
       void this.plugin.saveSettings();
       updatePreview();
     });
-    sizeRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
+    sizeRow.createEl("span", { text: "Pt", cls: "hwpx-unit" });
 
     // 줄간격
     const lsRow = panel.createDiv("hwpx-setting-row");
@@ -238,7 +238,7 @@ export class BodyStylePanel {
       void this.plugin.saveSettings();
       updatePreview();
     });
-    sizeRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
+    sizeRow.createEl("span", { text: "Pt", cls: "hwpx-unit" });
   }
 
   // ── 표 탭 ──

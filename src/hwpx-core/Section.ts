@@ -133,7 +133,13 @@ export class Section {
   private _footer: Footer | undefined;
 
   /** Back-reference to document for convenience API (set by Document). */
-  _document: any = null;
+  _document: {
+    _getOrCreateCharPr(opts: {
+      bold?: boolean; italic?: boolean; fontSize?: number;
+      textColor?: string; underline?: boolean;
+    }): number;
+    _getOrCreateParaPr(opts: { align?: string }): number;
+  } | null = null;
 
   constructor(init: SectionInit = {}) {
     this.pageWidth = init.pageWidth ?? 59530;     // A4
@@ -201,7 +207,7 @@ export class Section {
     cols: number;
     colWidths?: number[];
     totalWidth?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   }): Table {
     const totalWidth = opts.totalWidth ?? (this.pageWidth - this.marginLeft - this.marginRight);
     const tbl = new Table({ ...opts, totalWidth });

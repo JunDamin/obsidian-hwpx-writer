@@ -17,7 +17,7 @@
 import type { HwpxWriterSettings } from "./settings";
 
 export interface ParseResult {
-  frontmatter: Record<string, any>;
+  frontmatter: Record<string, unknown>;
   body: string;
 }
 
@@ -45,15 +45,15 @@ export function parseFrontmatter(markdown: string): ParseResult {
  * 매우 단순한 YAML 파서 — key: value / 2-스페이스 중첩만 지원.
  * 복잡한 YAML(배열, 여러 줄 문자열)은 지원하지 않는다.
  */
-function parseSimpleYaml(lines: string[]): Record<string, any> {
-  const root: Record<string, any> = {};
-  const stack: { obj: Record<string, any>; indent: number }[] = [{ obj: root, indent: -1 }];
+function parseSimpleYaml(lines: string[]): Record<string, unknown> {
+  const root: Record<string, unknown> = {};
+  const stack: { obj: Record<string, unknown>; indent: number }[] = [{ obj: root, indent: -1 }];
 
   for (const raw of lines) {
     if (!raw.trim() || raw.trim().startsWith("#")) continue;
     const indent = raw.length - raw.trimStart().length;
     const line = raw.trim();
-    const m = line.match(/^([\w\-]+)\s*:\s*(.*)$/);
+    const m = line.match(/^([\w-]+)\s*:\s*(.*)$/);
     if (!m) continue;
     const key = m[1];
     const rawValue = m[2];
@@ -64,7 +64,7 @@ function parseSimpleYaml(lines: string[]): Record<string, any> {
 
     if (rawValue === "") {
       // 하위 객체 시작
-      const child: Record<string, any> = {};
+      const child: Record<string, unknown> = {};
       parent[key] = child;
       stack.push({ obj: child, indent });
     } else {
@@ -74,7 +74,7 @@ function parseSimpleYaml(lines: string[]): Record<string, any> {
   return root;
 }
 
-function parseYamlValue(raw: string): any {
+function parseYamlValue(raw: string): string | number | boolean | null {
   const s = raw.trim();
   // 따옴표 문자열
   if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
@@ -109,25 +109,26 @@ function parseYamlValue(raw: string): any {
  */
 export function applyFrontmatterOverrides(
   base: HwpxWriterSettings,
-  frontmatter: Record<string, any>,
+  frontmatter: Record<string, unknown>,
 ): { settings: HwpxWriterSettings; appliedKeys: string[] } {
   const applied: string[] = [];
   // 깊은 복사 (presets 등은 공유해도 되지만 설정 수정하므로 얕은 복사 수준으로)
-  let settings: HwpxWriterSettings = { ...base, headingStyles: [...base.headingStyles] };
+  const settings: HwpxWriterSettings = { ...base, headingStyles: [...base.headingStyles] };
 
   // hwpx 섹션 우선, 없으면 최상위 레벨도 탐색
-  const src = (frontmatter.hwpx && typeof frontmatter.hwpx === "object")
-    ? frontmatter.hwpx
+  const src: Record<string, unknown> = (frontmatter.hwpx && typeof frontmatter.hwpx === "object")
+    ? (frontmatter.hwpx as Record<string, unknown>)
     : frontmatter;
 
   // preset을 먼저 적용 (다른 오버라이드가 프리셋 값을 덮어쓸 수 있도록)
-  if (typeof src.preset === "string" && base.presets?.[src.preset]) {
-    const preset = base.presets[src.preset];
-    const { presets, activePreset, ...preserved } = settings;
+  const presetName = src.preset;
+  if (typeof presetName === "string" && base.presets?.[presetName]) {
+    const preset = base.presets[presetName];
+    const { presets, ...preserved } = settings;
     Object.assign(settings, preserved, preset);
     settings.presets = presets;
-    settings.activePreset = src.preset;
-    applied.push(`preset=${src.preset}`);
+    settings.activePreset = presetName;
+    applied.push(`preset=${presetName}`);
   }
 
   const setStr = (key: string, prop: keyof HwpxWriterSettings) => {
@@ -153,9 +154,9 @@ export function applyFrontmatterOverrides(
   };
   const setEnum = (key: string, prop: keyof HwpxWriterSettings, allowed: unknown[]) => {
     const v = src[key];
-    if (allowed.includes(v)) {
+    if (allowed.includes(v) && (typeof v === "string" || typeof v === "number" || typeof v === "boolean")) {
       (settings as Record<keyof HwpxWriterSettings, unknown>)[prop] = v;
-      applied.push(`${key}=${v}`);
+      applied.push(`${key}=${String(v)}`);
     }
   };
 

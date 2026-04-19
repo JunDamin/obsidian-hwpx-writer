@@ -81,7 +81,7 @@ export class HeadingStylePanel {
       void this.plugin.saveSettings();
       updatePreview();
     });
-    sizeRow.createEl("span", { text: "pt", cls: "hwpx-unit" });
+    sizeRow.createEl("span", { text: "Pt", cls: "hwpx-unit" });
     sizeRow.createEl("span", { text: "  색상", cls: "hwpx-heading-field-label" });
     const colorInput = sizeRow.createEl("input", {
       type: "color", cls: "hwpx-color-input", value: hs.color || "#000000",

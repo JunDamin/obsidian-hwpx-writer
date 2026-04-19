@@ -17,7 +17,7 @@
  */
 
 import {
-  HwpxDocument, Section, Paragraph,
+  HwpxDocument, Paragraph, TableCell,
   CharProperties, ParaProperties,
   BorderFill, BorderLine, SolidFill,
   Font, FontFace,
@@ -219,7 +219,7 @@ export async function buildTemplateFromSettings(
   const tbl = sec.addTable({ rows: TOTAL_ROWS, cols: TOTAL_COLS, repeatHeader: !!settings.tableRepeatHeader });
   const padH = settings.tableCellPaddingH ? mm(settings.tableCellPaddingH) : undefined;
   const padV = settings.tableCellPaddingV ? mm(settings.tableCellPaddingV) : undefined;
-  const applyPadding = (cell: any) => {
+  const applyPadding = (cell: TableCell) => {
     if (padH !== undefined) { cell.marginLeft = padH; cell.marginRight = padH; }
     if (padV !== undefined) { cell.marginTop = padV; cell.marginBottom = padV; }
   };

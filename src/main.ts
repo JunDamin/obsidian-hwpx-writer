@@ -34,14 +34,14 @@ export default class HwpxWriterPlugin extends Plugin {
     this.registerView(VIEW_TYPE_HWPX, (leaf) => new HwpxSidebarView(leaf, this));
 
     // 리본 아이콘 (사이드바 토글)
-    this.addRibbonIcon("file-output", "HWPX Writer", () => {
-      this.activateSidebarView();
+    this.addRibbonIcon("file-output", "Hwpx writer", () => {
+      void this.activateSidebarView();
     });
 
     // 커맨드: HWPX로 내보내기
     this.addCommand({
       id: "export-to-hwpx",
-      name: "HWPX로 내보내기",
+      name: "Hwpx로 내보내기",
       callback: () => this.exportCurrentFile(),
     });
 
@@ -57,7 +57,7 @@ export default class HwpxWriterPlugin extends Plugin {
       this.app.workspace.on("file-menu", (menu, file) => {
         if (file instanceof TFile && file.extension === "md") {
           menu.addItem((item) => {
-            item.setTitle("HWPX로 내보내기")
+            item.setTitle("Hwpx로 내보내기")
               .setIcon("file-output")
               .onClick(() => this.exportFile(file));
           });
@@ -92,7 +92,7 @@ export default class HwpxWriterPlugin extends Plugin {
 
       if (!this.settings.sampleTemplatesSeeded) {
         // 첫 실행 — 비파괴 시드
-        const added = await store.seedSampleTemplates();
+        const added = store.seedSampleTemplates();
         if (added > 0) {
           log.info(`Auto-seeded ${added} sample template(s) on first run.`);
         }
@@ -106,11 +106,11 @@ export default class HwpxWriterPlugin extends Plugin {
       // 남아 있을 때만 덮어쓴다. 완전히 비어 있으면 사용자가 지운 것으로 보고 건드리지 않음.
       if (currentVersion < CURRENT_SAMPLE_VERSION && !store.isEmpty()) {
         // v3 이전의 자동 생성 샘플 4종 정리 (md2hwpx 컨벤션 미준수라 무의미)
-        const pruned = await store.pruneLegacySampleTemplates();
+        const pruned = store.pruneLegacySampleTemplates();
         if (pruned.length > 0) {
           log.info(`Pruned ${pruned.length} legacy sample(s): ${pruned.join(", ")}`);
         }
-        const written = await store.seedSampleTemplates({ force: true });
+        const written = store.seedSampleTemplates({ force: true });
         log.info(
           `[HWPX Writer] Upgraded sample templates to v${CURRENT_SAMPLE_VERSION} ` +
           `(${written} written).`,
@@ -141,7 +141,7 @@ export default class HwpxWriterPlugin extends Plugin {
         leaf = rightLeaf;
       }
     }
-    if (leaf) workspace.revealLeaf(leaf);
+    if (leaf) void workspace.revealLeaf(leaf);
   }
 
   async exportCurrentFile() {

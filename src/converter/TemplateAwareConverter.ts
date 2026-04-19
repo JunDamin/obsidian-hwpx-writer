@@ -19,8 +19,6 @@ import type {
   TemplateMetadata, ParaStyleRef, CellStyleRef, ListStyleRef,
 } from "./TemplateReader";
 import type { Token, Tokens } from "marked";
-import type { HwpxWriterSettings, TableBorderDesign, BorderLineSpec } from "../settings";
-import { defaultBorderDesign } from "../settings";
 
 /** marked token 에 공식 타입이 없는 확장 프로퍼티. */
 interface TokenExt { raw?: string; text?: string; tokens?: Token[]; latex?: string; }

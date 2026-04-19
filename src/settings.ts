@@ -314,9 +314,9 @@ export function migrateLegacySettings(raw: unknown): Partial<HwpxWriterSettings>
   delete out.bodyFont;
 
   // listBulletChars → listLevelStyles
-  if (out.listBulletChars && !Array.isArray(out.listLevelStyles)) {
-    const chars: string[] = String(out.listBulletChars).split(",").map((c: string) => c.trim());
-    out.listLevelStyles = chars.map((ch: string) => ({
+  if (typeof out.listBulletChars === "string" && !Array.isArray(out.listLevelStyles)) {
+    const chars = out.listBulletChars.split(",").map((c) => c.trim());
+    out.listLevelStyles = chars.map((ch) => ({
       bulletChar: ch || "•", fontSize: 10, fontName: "",
     }));
   }
@@ -368,7 +368,7 @@ function migrateBorderDesign(raw: Record<string, unknown>): TableBorderDesign {
     const merged: TableBorderDesign = { ...defaults };
     for (const k of Object.keys(defaults) as (keyof TableBorderDesign)[]) {
       if (d[k] && typeof d[k] === "object") {
-        merged[k] = { ...defaults[k], ...(d[k] as BorderLineSpec) };
+        merged[k] = { ...defaults[k], ...d[k] };
       }
     }
     return merged;
@@ -407,12 +407,11 @@ export class HwpxSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    new Setting(containerEl).setName("HWPX Writer 설정").setHeading();
 
     // 기본 설정
     new Setting(containerEl)
       .setName("출력 폴더")
-      .setDesc("HWPX 파일을 저장할 폴더 (비어있으면 원본과 같은 폴더)")
+      .setDesc("Hwpx 파일을 저장할 폴더 (비어있으면 원본과 같은 폴더)")
       .addText((text) =>
         text.setValue(this.plugin.settings.outputFolder)
           .onChange(async (value) => {
@@ -425,7 +424,7 @@ export class HwpxSettingTab extends PluginSettingTab {
       .setName("수식 모드")
       .addDropdown((dropdown) =>
         dropdown
-          .addOption("hwce", "HWCE (한컴 수식)")
+          .addOption("hwce", "Hwce (한컴 수식)")
           .addOption("italic", "기울임 텍스트")
           .addOption("none", "무시")
           .setValue(this.plugin.settings.mathMode)

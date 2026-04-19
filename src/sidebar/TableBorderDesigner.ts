@@ -22,7 +22,7 @@
 
 import type HwpxWriterPlugin from "../main";
 import type { BorderLineSpec, BorderLineType, TableBorderDesign } from "../settings";
-import { defaultBorderDesign, BORDER_TYPE_LABELS, BORDER_WIDTHS } from "../settings";
+import { BORDER_TYPE_LABELS, BORDER_WIDTHS } from "../settings";
 import { promptText, confirmModal } from "../ui/prompts";
 
 type SegmentKey = keyof TableBorderDesign;
@@ -299,7 +299,7 @@ export class TableBorderDesigner {
 
     const presets = this.plugin.settings.tableBorderUserPresets || [];
     if (presets.length === 0) {
-      const empty = container.createEl("span", {
+      container.createEl("span", {
         text: "저장된 프리셋이 없습니다",
         cls: "hwpx-border-user-chip-empty",
       });
@@ -757,7 +757,7 @@ export class TableBorderDesigner {
     colorInput.addEventListener("change", () => { void (async () => {
       if (editingSelection && colorInput.value !== colorBeforeDrag.value && this.selectedSegment) {
         const snapshot = structuredClone(this.actualDesign);
-        (snapshot[this.selectedSegment] as BorderLineSpec).color = colorBeforeDrag.value;
+        snapshot[this.selectedSegment].color = colorBeforeDrag.value;
         this.undoStack.push(snapshot);
         this.refreshUndoButton();
       }

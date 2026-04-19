@@ -67,14 +67,14 @@ export class TemplateManager {
       text: "💾 현재 설정", cls: "hwpx-action-btn",
       attr: { title: "현재 settings 값을 md2hwpx 컨벤션 템플릿으로 저장 (복원용)" },
     });
-    saveFromSettingsBtn.addEventListener("click", () => this.saveFromCurrentSettings());
+    saveFromSettingsBtn.addEventListener("click", () => { void this.saveFromCurrentSettings(); });
 
     // 기본 설정 템플릿 — DEFAULT_SETTINGS 로 완전한 md2hwpx-컨벤션 템플릿 생성
     const defaultsBtn = btnRow.createEl("button", {
       text: "🆕 기본 설정", cls: "hwpx-action-btn",
       attr: { title: "플러그인 기본 설정값으로 템플릿 생성 (복원용 스냅샷)" },
     });
-    defaultsBtn.addEventListener("click", () => this.saveFromDefaults());
+    defaultsBtn.addEventListener("click", () => { void this.saveFromDefaults(); });
 
     // 폴더 열기
     const folderBtn = btnRow.createEl("button", {
@@ -348,9 +348,9 @@ export class TemplateManager {
    * 샘플 템플릿 3종(기본 보고서/공문 양식/학술 논문) 을 폴더에 시드.
    * 이미 같은 이름이 있으면 건너뜀(비파괴). 처음 써보는 사용자용.
    */
-  private async seedSamples(): Promise<void> {
+  private seedSamples(): void {
     try {
-      const added = await this.store.seedSampleTemplates();
+      const added = this.store.seedSampleTemplates();
       if (added === 0) {
         new Notice("ℹ️ 모든 샘플이 이미 존재합니다.");
       } else {

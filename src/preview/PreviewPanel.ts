@@ -74,7 +74,7 @@ export class PreviewPanel {
         text: "🔄 미리보기 생성",
         cls: "hwpx-preview-btn",
       });
-      refreshBtn.addEventListener("click", () => this.refresh());
+      refreshBtn.addEventListener("click", () => { void this.refresh(); });
     }
 
     // 한컴 / 외부 뷰어 버튼
@@ -83,7 +83,7 @@ export class PreviewPanel {
         text: env.hancomInstalled ? "🖨️ 한컴에서 미리보기" : "📄 외부 뷰어로 열기",
         cls: "hwpx-preview-btn",
       });
-      hancomBtn.addEventListener("click", () => this.previewInHancom());
+      hancomBtn.addEventListener("click", () => { void this.previewInHancom(); });
     }
 
     // 미리보기가 꺼진 경우 켜기 버튼
@@ -227,7 +227,7 @@ export class PreviewPanel {
 
     // export는 정상 작동한다는 안내 (preview 단독 실패임을 명확히)
     box.createEl("p", {
-      text: "ℹ️ HWPX 내보내기(export) 기능은 정상 작동합니다. 미리보기만 실패했습니다.",
+      text: "ℹ️ hwpx 내보내기(export) 기능은 정상 작동합니다. 미리보기만 실패했습니다.",
       cls: "hwpx-preview-note",
     });
 
@@ -266,7 +266,7 @@ export class PreviewPanel {
     }
 
     const retryBtn = btnRow.createEl("button", { text: "🔄 다시 시도", cls: "hwpx-result-btn" });
-    retryBtn.addEventListener("click", () => this.refresh());
+    retryBtn.addEventListener("click", () => { void this.refresh(); });
 
     const disableBtn = btnRow.createEl("button", { text: "🚫 미리보기 끄기", cls: "hwpx-result-btn" });
     disableBtn.addEventListener("click", () => {

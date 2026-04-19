@@ -102,7 +102,7 @@ export function extractSettingsFromTemplate(
   }
   if (headingPatch.filter(Boolean).length > 0) {
     // 기존 headingStyles 와 병합 — 없는 레벨은 기존값 유지
-    patch.headingStyles = headingPatch as HeadingStyle[];
+    patch.headingStyles = headingPatch;
     summary.push(`headingStyles=${headingPatch.filter(Boolean).length}개`);
   }
 

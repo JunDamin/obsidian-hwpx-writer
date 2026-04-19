@@ -19,9 +19,15 @@ export class TextRun {
   }
 }
 
+export interface InlineXmlItem {
+  toXml(w: XmlWriter): void;
+  displayText?: string;
+  toXmlEnd?(w: XmlWriter): void;
+}
+
 export type InlineItem = {
   type: "run" | "field" | "bookmark" | "footnote" | "endnote" | "equation";
-  item: any;
+  item: InlineXmlItem;
 };
 
 export class Paragraph {
@@ -47,23 +53,23 @@ export class Paragraph {
     return run;
   }
 
-  addField(field: any): void {
+  addField(field: InlineXmlItem): void {
     this.inlineItems.push({ type: "field", item: field });
   }
 
-  addFootnote(note: any): void {
+  addFootnote(note: InlineXmlItem): void {
     this.inlineItems.push({ type: "footnote", item: note });
   }
 
-  addEndnote(note: any): void {
+  addEndnote(note: InlineXmlItem): void {
     this.inlineItems.push({ type: "endnote", item: note });
   }
 
-  addBookmark(bm: any): void {
+  addBookmark(bm: InlineXmlItem): void {
     this.inlineItems.push({ type: "bookmark", item: bm });
   }
 
-  addEquation(eq: any): void {
+  addEquation(eq: InlineXmlItem): void {
     this.inlineItems.push({ type: "equation", item: eq });
   }
 
