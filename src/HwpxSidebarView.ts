@@ -77,7 +77,7 @@ export class HwpxSidebarView extends ItemView {
 
     // 내보내기 버튼
     const exportBtn = convertSection.createEl("button", {
-      text: "📄 Hwpx로 내보내기",
+      text: "📄 HWPX로 내보내기",
       cls: "hwpx-export-btn",
     });
     exportBtn.addEventListener("click", () => { void (async () => {
@@ -87,7 +87,7 @@ export class HwpxSidebarView extends ItemView {
         await this.plugin.exportCurrentFile();
       } finally {
         exportBtn.disabled = false;
-        exportBtn.setText("📄 Hwpx로 내보내기");
+        exportBtn.setText("📄 HWPX로 내보내기");
       }
     })(); });
 
