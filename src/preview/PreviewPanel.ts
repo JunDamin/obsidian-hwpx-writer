@@ -211,7 +211,7 @@ export class PreviewPanel {
       const templatePath = resolveActiveTemplatePath(this.app, this.plugin, settings);
       const hwpxBytes = await convertMarkdownToHwpx(markdown, settings, { templatePath });
       this.lastHwpxBytes = hwpxBytes;
-      const tmp = await openInHancom(hwpxBytes, file.basename);
+      const tmp = openInHancom(hwpxBytes, file.basename);
       new Notice(`📄 열기 요청: ${tmp}`);
     } catch (e) {
       new Notice(`외부 뷰어 열기 실패: ${e}`);
@@ -227,7 +227,7 @@ export class PreviewPanel {
 
     // export는 정상 작동한다는 안내 (preview 단독 실패임을 명확히)
     box.createEl("p", {
-      text: "ℹ️ hwpx 내보내기(export) 기능은 정상 작동합니다. 미리보기만 실패했습니다.",
+      text: "ℹ️ HWPX 내보내기(export) 기능은 정상 작동합니다. 미리보기만 실패했습니다.",
       cls: "hwpx-preview-note",
     });
 
@@ -258,7 +258,7 @@ export class PreviewPanel {
             this.lastHwpxBytes = await convertMarkdownToHwpx(md, settings, { templatePath });
           }
           const file = this.plugin.findMarkdownFile();
-          await openInHancom(this.lastHwpxBytes, file?.basename || "preview");
+          openInHancom(this.lastHwpxBytes, file?.basename || "preview");
         } catch (e) {
           new Notice(`열기 실패: ${e}`);
         }

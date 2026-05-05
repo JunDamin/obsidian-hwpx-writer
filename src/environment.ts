@@ -3,11 +3,11 @@
  */
 
 import type { App } from "obsidian";
-import { FileSystemAdapter } from "obsidian";
+import { FileSystemAdapter, Platform } from "obsidian";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { shell } from "electron";
+import { openPathExternal } from "./electronShell";
 
 export interface EnvironmentInfo {
   /** rhwp_bg.wasm 파일이 플러그인 폴더에 존재하는지 */
@@ -37,12 +37,8 @@ export function detectEnvironment(app: App, pluginDir: string): EnvironmentInfo 
     renderFailCount: 0,
   };
 
-  // Electron 사용 가능 여부
-  try {
-    info.electronAvailable = !!shell;
-  } catch {
-    info.electronAvailable = false;
-  }
+  // Electron 사용 가능 여부 — 데스크탑 앱에서만 사용 가능 (모바일에서는 자동 false)
+  info.electronAvailable = Platform.isDesktopApp;
 
   // 플랫폼
   try {
@@ -91,14 +87,18 @@ export function canUsePreview(env: EnvironmentInfo): boolean {
 
 /**
  * HWPX 바이트를 임시 파일로 저장 후 한컴오피스로 열기.
+ *
+ * 임시 파일은 vault 외부(OS tmpdir)에 두므로 Obsidian Vault API 가 아닌
+ * Node fs 와 Electron shell 을 사용해야 한다. Platform.isDesktopApp 가드는
+ * `openPathExternal` 내부에서 처리.
  */
-export async function openInHancom(
+export function openInHancom(
   hwpxBytes: Uint8Array,
   filename: string,
-): Promise<string> {
+): string {
   const safeName = (filename || "preview").replace(/[^\w가-힣ㄱ-ㅎㅏ-ㅣ._ -]/g, "_");
   const tmpPath = path.join(os.tmpdir(), `${safeName}.hwpx`);
   fs.writeFileSync(tmpPath, Buffer.from(hwpxBytes));
-  await shell.openPath(tmpPath);
+  openPathExternal(tmpPath);
   return tmpPath;
 }

@@ -10,7 +10,7 @@ import type { App, Plugin } from "obsidian";
 import { FileSystemAdapter } from "obsidian";
 import * as fs from "fs";
 import * as path from "path";
-import { shell } from "electron";
+import { openPathExternal, showInFolder } from "../electronShell";
 import { createAllSampleTemplates } from "./sampleTemplates";
 
 export interface TemplateInfo {
@@ -134,24 +134,14 @@ export class TemplateStore {
   openExternal(id: string): boolean {
     const info = this.get(id);
     if (!info) return false;
-    try {
-      void shell.openPath(info.absPath);
-      return true;
-    } catch {
-      return false;
-    }
+    return openPathExternal(info.absPath);
   }
 
   /** 파일 탐색기에서 해당 파일을 선택된 상태로 연다 */
   revealInFolder(id: string): boolean {
     const info = this.get(id);
     if (!info) return false;
-    try {
-      shell.showItemInFolder(info.absPath);
-      return true;
-    } catch {
-      return false;
-    }
+    return showInFolder(info.absPath);
   }
 
   /**
@@ -209,12 +199,7 @@ export class TemplateStore {
 
   /** 템플릿 폴더 자체를 연다 */
   openTemplatesFolder(): boolean {
-    try {
-      void shell.openPath(this.getTemplatesDir());
-      return true;
-    } catch {
-      return false;
-    }
+    return openPathExternal(this.getTemplatesDir());
   }
 
   /**

@@ -411,7 +411,7 @@ export class HwpxSettingTab extends PluginSettingTab {
     // 기본 설정
     new Setting(containerEl)
       .setName("출력 폴더")
-      .setDesc("Hwpx 파일을 저장할 폴더 (비어있으면 원본과 같은 폴더)")
+      .setDesc("HWPX 파일을 저장할 폴더 (비어있으면 원본과 같은 폴더)")
       .addText((text) =>
         text.setValue(this.plugin.settings.outputFolder)
           .onChange(async (value) => {

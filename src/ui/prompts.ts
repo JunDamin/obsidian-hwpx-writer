@@ -25,7 +25,9 @@ export function promptText(
           value: defaultValue,
           attr: { placeholder },
         });
-        setTimeout(() => { input.focus(); input.select(); }, 30);
+        // popout window 호환을 위해 모달 컨테이너의 win(=ownerDocument.defaultView)을
+        // 사용. activeWindow 와 달리 모달이 떠 있는 그 창이 확실히 잡힌다.
+        contentEl.win.setTimeout(() => { input.focus(); input.select(); }, 30);
 
         const btnRow = contentEl.createDiv({ cls: "hwpx-result-btns" });
         const okBtn = btnRow.createEl("button", {

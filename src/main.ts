@@ -34,14 +34,14 @@ export default class HwpxWriterPlugin extends Plugin {
     this.registerView(VIEW_TYPE_HWPX, (leaf) => new HwpxSidebarView(leaf, this));
 
     // 리본 아이콘 (사이드바 토글)
-    this.addRibbonIcon("file-output", "Hwpx writer", () => {
+    this.addRibbonIcon("file-output", "HWPX writer", () => {
       void this.activateSidebarView();
     });
 
     // 커맨드: HWPX로 내보내기
     this.addCommand({
       id: "export-to-hwpx",
-      name: "Hwpx로 내보내기",
+      name: "HWPX로 내보내기",
       callback: () => this.exportCurrentFile(),
     });
 
@@ -57,7 +57,7 @@ export default class HwpxWriterPlugin extends Plugin {
       this.app.workspace.on("file-menu", (menu, file) => {
         if (file instanceof TFile && file.extension === "md") {
           menu.addItem((item) => {
-            item.setTitle("Hwpx로 내보내기")
+            item.setTitle("HWPX로 내보내기")
               .setIcon("file-output")
               .onClick(() => this.exportFile(file));
           });

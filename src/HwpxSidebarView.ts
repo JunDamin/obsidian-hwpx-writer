@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
-import { shell } from "electron";
+import { openPathExternal, showInFolder } from "./electronShell";
 import { log } from "./logger";
 import type HwpxWriterPlugin from "./main";
 import { detectEnvironment, EnvironmentInfo } from "./environment";
@@ -47,7 +47,7 @@ export class HwpxSidebarView extends ItemView {
   }
 
   getViewType(): string { return VIEW_TYPE_HWPX; }
-  getDisplayText(): string { return "Hwpx writer"; }
+  getDisplayText(): string { return "HWPX writer"; }
   getIcon(): string { return "file-output"; }
 
   onOpen(): Promise<void> {
@@ -301,9 +301,7 @@ export class HwpxSidebarView extends ItemView {
       text: "📄 파일 열기", cls: "hwpx-result-btn",
     });
     openFileBtn.addEventListener("click", () => {
-      try {
-        void shell.openPath(fullPath);
-      } catch {
+      if (!openPathExternal(fullPath)) {
         new Notice("파일 열기 실패");
       }
     });
@@ -313,9 +311,7 @@ export class HwpxSidebarView extends ItemView {
       text: "📂 폴더 열기", cls: "hwpx-result-btn",
     });
     openFolderBtn.addEventListener("click", () => {
-      try {
-        shell.showItemInFolder(fullPath);
-      } catch {
+      if (!showInFolder(fullPath)) {
         new Notice("폴더 열기 실패");
       }
     });
