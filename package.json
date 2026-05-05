@@ -1,6 +1,6 @@
 {
   "name": "obsidian-hwpx-writer",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Obsidian plugin to export Markdown as HWPX (한글) documents",
   "main": "main.js",
   "scripts": {

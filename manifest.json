@@ -1,7 +1,7 @@
 {
   "id": "hwpx-writer",
   "name": "HWPX writer",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "minAppVersion": "1.7.2",
   "description": "Convert Markdown notes to hwpx documents with live preview, templates, and detailed style controls.",
   "author": "JunDamin",
